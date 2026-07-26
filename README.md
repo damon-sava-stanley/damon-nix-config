@@ -71,8 +71,5 @@ the placeholder with the machine's generated hardware configuration, verify
 that it builds, and activate it:
 
 ```console
-sudo cp -a flake.nix home hosts modules /etc/nixos/
-sudo cp /etc/nixos/hardware-configuration.nix /etc/nixos/hosts/deeley/hardware-configuration.nix
-sudo nixos-rebuild build --flake /etc/nixos#deeley
-sudo nixos-rebuild switch --flake /etc/nixos#deeley
+./install.sh
 ```
