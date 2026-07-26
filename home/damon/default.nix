@@ -1,11 +1,11 @@
-{ pkgs, ... }:
+{ pkgs, unstablePkgs, ... }:
 
 {
   home = {
     username = "damon";
     homeDirectory = "/home/damon";
     packages = [
-      pkgs.codex
+      unstablePkgs.codex
       pkgs.gh
       pkgs.xdg-utils
     ];
@@ -21,7 +21,13 @@
     vimAlias = true;
   };
 
-  programs.git.enable = true;
+  programs.git = {
+    enable = true;
+    settings.user = {
+      name = "Damon Sava Stanley";
+      email = "damonsava@gmail.com";
+    };
+  };
 
   programs.ghostty = {
     enable = true;

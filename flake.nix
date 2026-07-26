@@ -3,6 +3,7 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
+    nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
 
     home-manager = {
       url = "github:nix-community/home-manager/release-26.05";
@@ -14,10 +15,14 @@
     {
       self,
       nixpkgs,
+      nixpkgs-unstable,
       home-manager,
     }:
     let
       system = "x86_64-linux";
+      unstablePkgs = import nixpkgs-unstable {
+        inherit system;
+      };
     in
     {
       nixosConfigurations.deeley = nixpkgs.lib.nixosSystem {
@@ -30,6 +35,9 @@
             home-manager = {
               useGlobalPkgs = true;
               useUserPackages = true;
+              extraSpecialArgs = {
+                inherit unstablePkgs;
+              };
               users.damon = import ./home/damon;
             };
           }
@@ -40,4 +48,3 @@
       formatter.${system} = nixpkgs.legacyPackages.${system}.nixfmt;
     };
 }
-
