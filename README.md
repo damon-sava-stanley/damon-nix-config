@@ -63,3 +63,16 @@ sudo nixos-rebuild switch --flake .#deeley
 The first graphical login appears through tuigreet. In niri, use
 `Super+Return` for Ghostty, `Super+D` for fuzzel, `Super+B` for Brave, and
 `Super+Shift+L` to lock the session.
+
+## Install from an existing NixOS system
+
+From the repository checkout, copy the configuration into `/etc/nixos`, replace
+the placeholder with the machine's generated hardware configuration, verify
+that it builds, and activate it:
+
+```console
+sudo cp -a flake.nix home hosts modules /etc/nixos/
+sudo cp /etc/nixos/hardware-configuration.nix /etc/nixos/hosts/deeley/hardware-configuration.nix
+sudo nixos-rebuild build --flake /etc/nixos#deeley
+sudo nixos-rebuild switch --flake /etc/nixos#deeley
+```
