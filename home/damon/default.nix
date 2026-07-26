@@ -5,6 +5,7 @@
     username = "damon";
     homeDirectory = "/home/damon";
     packages = [
+      pkgs.codex
       pkgs.gh
       pkgs.xdg-utils
     ];
