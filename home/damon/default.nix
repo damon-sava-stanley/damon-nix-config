@@ -1,5 +1,79 @@
-{ pkgs, unstablePkgs, ... }:
+{
+  config,
+  pkgs,
+  unstablePkgs,
+  ...
+}:
 
+let
+  waybarThemeFile = "${config.xdg.cacheHome}/waybar/solarized.css";
+
+  waybarThemeWatcher = pkgs.writeShellApplication {
+    name = "waybar-theme-watcher";
+    runtimeInputs = [
+      pkgs.coreutils
+      pkgs.glib
+      pkgs.procps
+    ];
+    text = ''
+      theme_file=${waybarThemeFile}
+
+      apply_theme() {
+        portal_value="$(
+          gdbus call \
+            --session \
+            --dest org.freedesktop.portal.Desktop \
+            --object-path /org/freedesktop/portal/desktop \
+            --method org.freedesktop.portal.Settings.Read \
+            org.freedesktop.appearance \
+            color-scheme 2>/dev/null || true
+        )"
+
+        mkdir -p "$(dirname "$theme_file")"
+        temporary_file="$theme_file.tmp.$$"
+
+        if [[ "$portal_value" == *"uint32 1"* ]]; then
+          cat > "$temporary_file" <<'EOF'
+      @define-color bar_background #002b36;
+      @define-color bar_foreground #839496;
+      @define-color workspace_foreground #586e75;
+      @define-color active_workspace #268bd2;
+      EOF
+        else
+          cat > "$temporary_file" <<'EOF'
+      @define-color bar_background #fdf6e3;
+      @define-color bar_foreground #657b83;
+      @define-color workspace_foreground #93a1a1;
+      @define-color active_workspace #268bd2;
+      EOF
+        fi
+
+        mv "$temporary_file" "$theme_file"
+        pkill -x -USR2 waybar || true
+      }
+
+      apply_theme
+
+      if [[ "''${1:-}" == "--once" ]]; then
+        exit 0
+      fi
+
+      while true; do
+        while IFS= read -r event; do
+          if [[ "$event" == *"org.freedesktop.appearance"*"color-scheme"* ]]; then
+            apply_theme
+          fi
+        done < <(
+          gdbus monitor \
+            --session \
+            --dest org.freedesktop.portal.Desktop \
+            --object-path /org/freedesktop/portal/desktop 2>/dev/null || true
+        )
+        sleep 1
+      done
+    '';
+  };
+in
 {
   home = {
     username = "damon";
@@ -32,7 +106,10 @@
 
   programs.ghostty = {
     enable = true;
-    settings.font-size = 12;
+    settings = {
+      font-size = 12;
+      theme = "light:iTerm2 Solarized Light,dark:iTerm2 Solarized Dark";
+    };
   };
 
   programs.chromium = {
@@ -96,23 +173,25 @@
     };
 
     style = ''
+      @import url("${waybarThemeFile}");
+
       * {
         font-family: sans-serif;
         font-size: 13px;
       }
 
       window#waybar {
-        background: #1e1e2e;
-        color: #cdd6f4;
+        background: @bar_background;
+        color: @bar_foreground;
       }
 
       #workspaces button {
         padding: 0 7px;
-        color: #6c7086;
+        color: @workspace_foreground;
       }
 
       #workspaces button.active {
-        color: #89b4fa;
+        color: @active_workspace;
       }
 
       #window, #tray, #network, #wireplumber,
@@ -120,6 +199,23 @@
         padding: 0 8px;
       }
     '';
+  };
+
+  systemd.user.services.waybar-theme-watcher = {
+    Unit = {
+      Description = "Keep Waybar colors in sync with the system color scheme";
+      PartOf = [ config.wayland.systemd.target ];
+      Before = [ "waybar.service" ];
+    };
+
+    Service = {
+      ExecStartPre = "${waybarThemeWatcher}/bin/waybar-theme-watcher --once";
+      ExecStart = "${waybarThemeWatcher}/bin/waybar-theme-watcher";
+      Restart = "always";
+      RestartSec = 1;
+    };
+
+    Install.WantedBy = [ config.wayland.systemd.target ];
   };
 
   programs.swaylock = {
