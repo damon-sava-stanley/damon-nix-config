@@ -32,6 +32,15 @@
           ./hosts/deeley
           home-manager.nixosModules.home-manager
           {
+            nixpkgs.config.allowUnfreePredicate =
+              pkg:
+              builtins.elem (nixpkgs.lib.getName pkg) [
+                "brave"
+                "dropbox"
+                "firefox-bin"
+                "firefox-bin-unwrapped"
+              ];
+
             home-manager = {
               useGlobalPkgs = true;
               useUserPackages = true;

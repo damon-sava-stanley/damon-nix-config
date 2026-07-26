@@ -6,6 +6,7 @@
     homeDirectory = "/home/damon";
     packages = [
       unstablePkgs.codex
+      pkgs.dropbox
       pkgs.gh
       pkgs.xdg-utils
     ];
