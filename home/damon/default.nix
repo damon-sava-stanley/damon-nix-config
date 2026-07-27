@@ -93,6 +93,7 @@ in
       pkgs.fd
       pkgs.ghc
       pkgs.haskell-language-server
+      pkgs.keepassxc
       pkgs.lsof
       pkgs.playerctl
       pkgs.ripgrep
