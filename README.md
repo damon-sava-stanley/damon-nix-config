@@ -62,7 +62,7 @@ sudo nixos-rebuild switch --flake .#deeley
 
 The first graphical login appears through tuigreet. In niri, use
 `Super+Return` for Ghostty, `Super+D` for fuzzel, `Super+B` for Brave, and
-`Super+Shift+L` to lock the session.
+`Super+Shift+S` to lock the session.
 
 ## Install from an existing NixOS system
 

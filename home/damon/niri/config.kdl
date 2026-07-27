@@ -56,6 +56,9 @@ binds {
     Mod+K { focus-window-up; }
     Mod+L { focus-column-right; }
 
+    Mod+Shift+H { focus-monitor-left; }
+    Mod+Shift+L { focus-monitor-right; }
+
     Mod+Ctrl+H { move-column-left; }
     Mod+Ctrl+J { move-window-down; }
     Mod+Ctrl+K { move-window-up; }
@@ -105,7 +108,7 @@ binds {
     XF86MonBrightnessDown { spawn "brightnessctl" "set" "5%-"; }
     XF86MonBrightnessUp { spawn "brightnessctl" "set" "5%+"; }
 
-    Mod+Shift+L repeat=false allow-inhibiting=false hotkey-overlay-title="Lock screen" { spawn "swaylock" "-f"; }
+    Mod+Shift+S repeat=false allow-inhibiting=false hotkey-overlay-title="Lock screen" { spawn "swaylock" "-f"; }
     Mod+Shift+P { power-off-monitors; }
     Mod+Shift+E { quit; }
     Ctrl+Alt+Delete { quit; }
