@@ -94,6 +94,43 @@ in
     defaultEditor = true;
     viAlias = true;
     vimAlias = true;
+
+    plugins = [
+      pkgs.vimPlugins.codex-nvim
+    ];
+
+    initLua = ''
+      vim.opt.autoread = true
+
+      require("codex").setup({
+        terminal = {
+          provider = "native",
+          provider_opts = {
+            native = {
+              window = "vsplit",
+              vsplit = {
+                side = "right",
+                size_pct = 40,
+              },
+            },
+          },
+        },
+      })
+
+      vim.keymap.set("n", "<leader>cc", "<cmd>Codex<cr>",
+        { desc = "Toggle Codex" })
+      vim.keymap.set("v", "<leader>cs", "<cmd>CodexSendSelection<cr>",
+        { desc = "Send selection to Codex" })
+      vim.keymap.set("n", "<leader>cf", "<cmd>CodexSendFile<cr>",
+        { desc = "Send file to Codex" })
+      vim.keymap.set("n", "<leader>cr", "<cmd>CodexResume<cr>",
+        { desc = "Resume Codex session" })
+
+      vim.api.nvim_create_autocmd(
+        { "FocusGained", "BufEnter", "CursorHold" },
+        { command = "checktime" }
+      )
+    '';
   };
 
   programs.git = {
