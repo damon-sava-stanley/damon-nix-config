@@ -82,6 +82,10 @@ in
   home = {
     username = "damon";
     homeDirectory = "/home/damon";
+    sessionVariables = {
+      EDITOR = "ghostty -e nvim";
+      VISUAL = "ghostty -e nvim";
+    };
     packages = [
       # Haskell toolchain; Cabal manages project dependencies.
       pkgs.cabal-install
@@ -106,7 +110,7 @@ in
 
   programs.neovim = {
     enable = true;
-    defaultEditor = true;
+    defaultEditor = false;
     viAlias = true;
     vimAlias = true;
 

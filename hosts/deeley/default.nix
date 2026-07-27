@@ -21,4 +21,3 @@
   # Keep this at the version used for the initial installation.
   system.stateVersion = "26.05";
 }
-
