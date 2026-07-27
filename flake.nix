@@ -36,7 +36,6 @@
               pkg:
               builtins.elem (nixpkgs.lib.getName pkg) [
                 "brave"
-                "codex.nvim"
                 "dropbox"
                 "firefox-bin"
                 "firefox-bin-unwrapped"

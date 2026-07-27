@@ -89,6 +89,7 @@ in
       pkgs.fd
       pkgs.ghc
       pkgs.haskell-language-server
+      pkgs.lsof
       pkgs.playerctl
       pkgs.ripgrep
       unstablePkgs.codex
@@ -101,6 +102,8 @@ in
     stateVersion = "26.05";
   };
 
+  programs.tmux.enable = true;
+
   programs.neovim = {
     enable = true;
     defaultEditor = true;
@@ -108,7 +111,11 @@ in
     vimAlias = true;
 
     plugins = [
-      pkgs.vimPlugins.codex-nvim
+      # Sidekick's Copilot integration is optional; omit its unfree language
+      # server because only the Codex CLI integration is enabled below.
+      (pkgs.vimPlugins.sidekick-nvim.overrideAttrs (_: {
+        runtimeDeps = [ ];
+      }))
       pkgs.vimPlugins.nvim-lspconfig
       pkgs.vimPlugins.plenary-nvim
       pkgs.vimPlugins.telescope-nvim
@@ -134,29 +141,41 @@ in
       vim.keymap.set("n", "<leader>fr", telescope.oldfiles,
         { desc = "Find recent files" })
 
-      require("codex").setup({
-        terminal = {
-          provider = "native",
-          provider_opts = {
-            native = {
-              window = "vsplit",
-              vsplit = {
-                side = "right",
-                size_pct = 40,
-              },
-            },
+      require("sidekick").setup({
+        nes = {
+          enabled = false,
+        },
+        cli = {
+          mux = {
+            enabled = true,
+            backend = "tmux",
+            create = "window",
           },
+          picker = "telescope",
         },
       })
 
-      vim.keymap.set("n", "<leader>cc", "<cmd>Codex<cr>",
-        { desc = "Toggle Codex" })
-      vim.keymap.set("v", "<leader>cs", "<cmd>CodexSendSelection<cr>",
-        { desc = "Send selection to Codex" })
-      vim.keymap.set("n", "<leader>cf", "<cmd>CodexSendFile<cr>",
-        { desc = "Send file to Codex" })
-      vim.keymap.set("n", "<leader>cr", "<cmd>CodexResume<cr>",
-        { desc = "Resume Codex session" })
+      local sidekick_cli = require("sidekick.cli")
+      vim.keymap.set("n", "<leader>cc", function()
+        sidekick_cli.toggle({ name = "codex", focus = true })
+      end, { desc = "Toggle Codex" })
+      vim.keymap.set("n", "<leader>ca", function()
+        sidekick_cli.select({ filter = { installed = true } })
+      end, { desc = "Attach to AI CLI" })
+      vim.keymap.set("x", "<leader>cs", function()
+        sidekick_cli.send({ msg = "{selection}" })
+      end, { desc = "Send selection to Codex" })
+      vim.keymap.set("n", "<leader>cf", function()
+        sidekick_cli.send({ msg = "{file}" })
+      end, { desc = "Send file to Codex" })
+      vim.keymap.set("n", "<leader>cd", function()
+        sidekick_cli.send({
+          msg = "Please help fix the diagnostics in {file}:\n{diagnostics}",
+        })
+      end, { desc = "Send diagnostics to Codex" })
+      vim.keymap.set({ "n", "x" }, "<leader>cp", function()
+        sidekick_cli.prompt()
+      end, { desc = "Select Codex prompt" })
 
       vim.api.nvim_create_autocmd(
         { "FocusGained", "BufEnter", "CursorHold" },
