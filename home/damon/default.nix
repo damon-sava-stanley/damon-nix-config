@@ -190,6 +190,7 @@ in
 
   programs.git = {
     enable = true;
+    settings.init.defaultBranch = "main";
     settings.user = {
       name = "Damon Sava Stanley";
       email = "damonsava@gmail.com";
