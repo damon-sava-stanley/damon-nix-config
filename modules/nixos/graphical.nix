@@ -5,6 +5,13 @@
   programs.niri.enable = true;
   hardware.graphics.enable = true;
 
+  services.geoclue2.enable = true;
+
+  xdg.portal = {
+    extraPortals = [ pkgs.darkman ];
+    config.niri."org.freedesktop.impl.portal.Settings" = "darkman";
+  };
+
   services.greetd = {
     enable = true;
     useTextGreeter = true;

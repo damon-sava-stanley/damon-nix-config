@@ -149,6 +149,14 @@ in
     };
   };
 
+  services.darkman = {
+    enable = true;
+    settings = {
+      portal = true;
+      usegeoclue = true;
+    };
+  };
+
   programs.chromium = {
     enable = true;
     package = pkgs.brave;
