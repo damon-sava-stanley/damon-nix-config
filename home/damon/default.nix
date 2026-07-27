@@ -38,6 +38,8 @@ let
       @define-color bar_foreground #839496;
       @define-color workspace_foreground #586e75;
       @define-color active_workspace #268bd2;
+      @define-color battery_charging #859900;
+      @define-color battery_low #dc322f;
       EOF
         else
           cat > "$temporary_file" <<'EOF'
@@ -45,6 +47,8 @@ let
       @define-color bar_foreground #657b83;
       @define-color workspace_foreground #93a1a1;
       @define-color active_workspace #268bd2;
+      @define-color battery_charging #859900;
+      @define-color battery_low #dc322f;
       EOF
         fi
 
@@ -81,9 +85,11 @@ in
     packages = [
       # Haskell toolchain; Cabal manages project dependencies.
       pkgs.cabal-install
+      pkgs.brightnessctl
       pkgs.fd
       pkgs.ghc
       pkgs.haskell-language-server
+      pkgs.playerctl
       pkgs.ripgrep
       unstablePkgs.codex
       pkgs.dropbox
@@ -211,6 +217,7 @@ in
         "tray"
         "network"
         "wireplumber"
+        "memory"
         "backlight"
         "battery"
         "clock"
@@ -236,9 +243,17 @@ in
         format-disconnected = "offline";
       };
 
-      wireplumber.format = "{volume}%";
-      backlight.format = "{percent}%";
-      battery.format = "{capacity}%";
+      wireplumber = {
+        format = "🔊 {volume}%";
+        format-muted = "🔇 muted";
+      };
+      memory.format = "🧠 {percentage}%";
+      backlight.format = "☀️ {percent}%";
+      battery = {
+        format = "🔋 {capacity}%";
+        format-charging = "🔋⚡ {capacity}%";
+        states.warning = 19;
+      };
       clock.format = "{:%a %b %d  %H:%M}";
       tray.spacing = 10;
     };
@@ -247,8 +262,9 @@ in
       @import url("${waybarThemeFile}");
 
       * {
-        font-family: sans-serif;
-        font-size: 13px;
+        font-family: monospace;
+        font-size: 14px;
+        font-weight: 500;
       }
 
       window#waybar {
@@ -266,8 +282,16 @@ in
       }
 
       #window, #tray, #network, #wireplumber,
-      #backlight, #battery, #clock {
+      #memory, #backlight, #battery, #clock {
         padding: 0 8px;
+      }
+
+      #battery.charging {
+        color: @battery_charging;
+      }
+
+      #battery.warning:not(.charging) {
+        color: @battery_low;
       }
     '';
   };
