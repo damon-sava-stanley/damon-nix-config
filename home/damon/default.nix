@@ -81,8 +81,10 @@ in
     packages = [
       # Haskell toolchain; Cabal manages project dependencies.
       pkgs.cabal-install
+      pkgs.fd
       pkgs.ghc
       pkgs.haskell-language-server
+      pkgs.ripgrep
       unstablePkgs.codex
       pkgs.dropbox
       pkgs.gh
@@ -102,12 +104,29 @@ in
     plugins = [
       pkgs.vimPlugins.codex-nvim
       pkgs.vimPlugins.nvim-lspconfig
+      pkgs.vimPlugins.plenary-nvim
+      pkgs.vimPlugins.telescope-nvim
     ];
 
     initLua = ''
+      vim.g.mapleader = " "
+      vim.g.maplocalleader = " "
+
       vim.opt.autoread = true
 
       vim.lsp.enable("hls")
+
+      require("telescope").setup({})
+
+      local telescope = require("telescope.builtin")
+      vim.keymap.set("n", "<leader>ff", telescope.find_files,
+        { desc = "Find files" })
+      vim.keymap.set("n", "<leader>fb", telescope.buffers,
+        { desc = "Find buffers" })
+      vim.keymap.set("n", "<leader>fg", telescope.live_grep,
+        { desc = "Find text" })
+      vim.keymap.set("n", "<leader>fr", telescope.oldfiles,
+        { desc = "Find recent files" })
 
       require("codex").setup({
         terminal = {
