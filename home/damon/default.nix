@@ -83,8 +83,8 @@ in
     username = "damon";
     homeDirectory = "/home/damon";
     sessionVariables = {
-      EDITOR = "ghostty -e nvim";
-      VISUAL = "ghostty -e nvim";
+      EDITOR = "nvim";
+      VISUAL = "nvim";
     };
     packages = [
       # Haskell toolchain; Cabal manages project dependencies.
