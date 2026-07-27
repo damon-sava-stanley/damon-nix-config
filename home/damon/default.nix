@@ -79,6 +79,10 @@ in
     username = "damon";
     homeDirectory = "/home/damon";
     packages = [
+      # Haskell toolchain; Cabal manages project dependencies.
+      pkgs.cabal-install
+      pkgs.ghc
+      pkgs.haskell-language-server
       unstablePkgs.codex
       pkgs.dropbox
       pkgs.gh
@@ -97,10 +101,13 @@ in
 
     plugins = [
       pkgs.vimPlugins.codex-nvim
+      pkgs.vimPlugins.nvim-lspconfig
     ];
 
     initLua = ''
       vim.opt.autoread = true
+
+      vim.lsp.enable("hls")
 
       require("codex").setup({
         terminal = {
