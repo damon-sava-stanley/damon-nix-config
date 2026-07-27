@@ -7,6 +7,9 @@
 
 let
   waybarThemeFile = "${config.xdg.cacheHome}/waybar/solarized.css";
+  niriThemeFile = "${config.xdg.cacheHome}/niri/solarized.kdl";
+  solarizedDarkWallpaper = "${pkgs.nixos-artwork.wallpapers.nineish-solarized-dark}/share/backgrounds/nixos/nix-wallpaper-nineish-solarized-dark.png";
+  solarizedLightWallpaper = "${pkgs.nixos-artwork.wallpapers.nineish-solarized-light}/share/backgrounds/nixos/nix-wallpaper-nineish-solarized-light.png";
 
   waybarThemeWatcher = pkgs.writeShellApplication {
     name = "waybar-theme-watcher";
@@ -14,9 +17,29 @@ let
       pkgs.coreutils
       pkgs.glib
       pkgs.procps
+      pkgs.awww
     ];
     text = ''
-      theme_file=${waybarThemeFile}
+      waybar_theme_file=${waybarThemeFile}
+      niri_theme_file=${niriThemeFile}
+
+      set_wallpaper() {
+        wallpaper=$1
+
+        # The daemon and watcher start together with the graphical session.
+        # Give the daemon a moment to create its socket on initial login.
+        for _ in {1..20}; do
+          if awww query >/dev/null 2>&1; then
+            awww img \
+              --resize crop \
+              --transition-type fade \
+              --transition-duration 1 \
+              "$wallpaper"
+            return
+          fi
+          sleep 0.1
+        done
+      }
 
       apply_theme() {
         portal_value="$(
@@ -29,11 +52,15 @@ let
             color-scheme 2>/dev/null || true
         )"
 
-        mkdir -p "$(dirname "$theme_file")"
-        temporary_file="$theme_file.tmp.$$"
+        mkdir -p \
+          "$(dirname "$waybar_theme_file")" \
+          "$(dirname "$niri_theme_file")"
+        waybar_temporary_file="$waybar_theme_file.tmp.$$"
+        niri_temporary_file="$niri_theme_file.tmp.$$"
 
         if [[ "$portal_value" == *"uint32 1"* ]]; then
-          cat > "$temporary_file" <<'EOF'
+          wallpaper=${solarizedDarkWallpaper}
+          cat > "$waybar_temporary_file" <<'EOF'
       @define-color bar_background #002b36;
       @define-color bar_foreground #839496;
       @define-color workspace_foreground #586e75;
@@ -41,8 +68,24 @@ let
       @define-color battery_charging #859900;
       @define-color battery_low #dc322f;
       EOF
+          cat > "$niri_temporary_file" <<'EOF'
+      layout {
+          background-color "#002b36"
+
+          focus-ring {
+              active-color "#268bd2"
+              inactive-color "#586e75"
+              urgent-color "#dc322f"
+          }
+      }
+
+      overview {
+          backdrop-color "#002b36"
+      }
+      EOF
         else
-          cat > "$temporary_file" <<'EOF'
+          wallpaper=${solarizedLightWallpaper}
+          cat > "$waybar_temporary_file" <<'EOF'
       @define-color bar_background #fdf6e3;
       @define-color bar_foreground #657b83;
       @define-color workspace_foreground #93a1a1;
@@ -50,10 +93,27 @@ let
       @define-color battery_charging #859900;
       @define-color battery_low #dc322f;
       EOF
+          cat > "$niri_temporary_file" <<'EOF'
+      layout {
+          background-color "#fdf6e3"
+
+          focus-ring {
+              active-color "#268bd2"
+              inactive-color "#93a1a1"
+              urgent-color "#dc322f"
+          }
+      }
+
+      overview {
+          backdrop-color "#fdf6e3"
+      }
+      EOF
         fi
 
-        mv "$temporary_file" "$theme_file"
+        mv "$waybar_temporary_file" "$waybar_theme_file"
+        mv "$niri_temporary_file" "$niri_theme_file"
         pkill -x -USR2 waybar || true
+        set_wallpaper "$wallpaper"
       }
 
       apply_theme
@@ -323,8 +383,10 @@ in
 
   systemd.user.services.waybar-theme-watcher = {
     Unit = {
-      Description = "Keep Waybar colors in sync with the system color scheme";
+      Description = "Keep Waybar, Niri, and the wallpaper in sync with the system color scheme";
       PartOf = [ config.wayland.systemd.target ];
+      Wants = [ "awww-daemon.service" ];
+      After = [ "awww-daemon.service" ];
       Before = [ "waybar.service" ];
     };
 
@@ -333,6 +395,20 @@ in
       ExecStart = "${waybarThemeWatcher}/bin/waybar-theme-watcher";
       Restart = "always";
       RestartSec = 1;
+    };
+
+    Install.WantedBy = [ config.wayland.systemd.target ];
+  };
+
+  systemd.user.services.awww-daemon = {
+    Unit = {
+      Description = "Wayland wallpaper daemon";
+      PartOf = [ config.wayland.systemd.target ];
+    };
+
+    Service = {
+      ExecStart = "${pkgs.awww}/bin/awww-daemon";
+      Restart = "on-failure";
     };
 
     Install.WantedBy = [ config.wayland.systemd.target ];
