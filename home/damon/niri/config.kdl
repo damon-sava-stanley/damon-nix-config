@@ -61,6 +61,9 @@ binds {
     Mod+Ctrl+K { move-window-up; }
     Mod+Ctrl+L { move-column-right; }
 
+    Mod+Ctrl+Shift+H { move-window-to-monitor-left; }
+    Mod+Ctrl+Shift+L { move-window-to-monitor-right; }
+
     Mod+U { focus-workspace-down; }
     Mod+I { focus-workspace-up; }
     Mod+Ctrl+U { move-column-to-workspace-down; }
