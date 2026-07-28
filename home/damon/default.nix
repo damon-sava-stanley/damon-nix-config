@@ -251,6 +251,7 @@ in
 
   programs.git = {
     enable = true;
+    lfs.enable = true;
     settings.init.defaultBranch = "main";
     settings.user = {
       name = "Damon Sava Stanley";
