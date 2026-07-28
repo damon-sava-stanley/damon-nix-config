@@ -9,6 +9,8 @@
 
   networking.hostName = "deeley";
 
+  services.fwupd.enable = true;
+
   users.users.damon = {
     isNormalUser = true;
     description = "Damon";
