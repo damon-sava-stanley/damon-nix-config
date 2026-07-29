@@ -157,7 +157,9 @@ in
       pkgs.lsof
       pkgs.playerctl
       pkgs.pwvucontrol
+      pkgs.python314
       pkgs.ripgrep
+      pkgs.uv
       unstablePkgs.codex
       pkgs.dropbox
       pkgs.gh
@@ -254,6 +256,7 @@ in
     enable = true;
     lfs.enable = true;
     settings.init.defaultBranch = "main";
+    settings.push.autoSetupRemote = true;
     settings.user = {
       name = "Damon Sava Stanley";
       email = "damonsava@gmail.com";

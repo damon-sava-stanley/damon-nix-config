@@ -20,6 +20,7 @@
     }:
     let
       system = "x86_64-linux";
+      pkgs = nixpkgs.legacyPackages.${system};
       unstablePkgs = import nixpkgs-unstable {
         inherit system;
       };
@@ -54,6 +55,25 @@
       };
 
       checks.${system}.deeley = self.nixosConfigurations.deeley.config.system.build.toplevel;
-      formatter.${system} = nixpkgs.legacyPackages.${system}.nixfmt;
+
+      devShells.${system}.default = pkgs.mkShell {
+        packages = [
+          pkgs.nodejs
+          pkgs.playwright-driver.browsers
+          (pkgs.python3.withPackages (
+            pythonPackages: with pythonPackages; [
+              playwright
+              pytest-playwright
+            ]
+          ))
+        ];
+
+        env = {
+          PLAYWRIGHT_BROWSERS_PATH = "${pkgs.playwright-driver.browsers}";
+          PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS = "true";
+        };
+      };
+
+      formatter.${system} = pkgs.nixfmt;
     };
 }
