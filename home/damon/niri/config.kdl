@@ -47,6 +47,7 @@ binds {
 
     Mod+Return hotkey-overlay-title="Open Ghostty" { spawn "ghostty"; }
     Mod+D hotkey-overlay-title="Open application launcher" { spawn "fuzzel"; }
+    Mod+Shift+D repeat=false hotkey-overlay-title="Toggle dark mode" { spawn "darkman" "toggle"; }
     Mod+B hotkey-overlay-title="Open Brave" { spawn "brave"; }
 
     Mod+Q repeat=false { close-window; }
