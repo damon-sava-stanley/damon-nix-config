@@ -8,6 +8,7 @@
 let
   waybarThemeFile = "${config.xdg.cacheHome}/waybar/solarized.css";
   niriThemeFile = "${config.xdg.cacheHome}/niri/solarized.kdl";
+  fuzzelThemeFile = "${config.xdg.cacheHome}/fuzzel/solarized.ini";
   solarizedDarkWallpaper = "${pkgs.nixos-artwork.wallpapers.nineish-solarized-dark}/share/backgrounds/nixos/nix-wallpaper-nineish-solarized-dark.png";
   solarizedLightWallpaper = "${pkgs.nixos-artwork.wallpapers.nineish-solarized-light}/share/backgrounds/nixos/nix-wallpaper-nineish-solarized-light.png";
 
@@ -22,6 +23,7 @@ let
     text = ''
       waybar_theme_file=${waybarThemeFile}
       niri_theme_file=${niriThemeFile}
+      fuzzel_theme_file=${fuzzelThemeFile}
 
       set_wallpaper() {
         wallpaper=$1
@@ -54,9 +56,11 @@ let
 
         mkdir -p \
           "$(dirname "$waybar_theme_file")" \
-          "$(dirname "$niri_theme_file")"
+          "$(dirname "$niri_theme_file")" \
+          "$(dirname "$fuzzel_theme_file")"
         waybar_temporary_file="$waybar_theme_file.tmp.$$"
         niri_temporary_file="$niri_theme_file.tmp.$$"
+        fuzzel_temporary_file="$fuzzel_theme_file.tmp.$$"
 
         if [[ "$portal_value" == *"uint32 1"* ]]; then
           wallpaper=${solarizedDarkWallpaper}
@@ -83,6 +87,21 @@ let
           backdrop-color "#002b36"
       }
       EOF
+          cat > "$fuzzel_temporary_file" <<'EOF'
+      [colors]
+      background=002b36ff
+      text=839496ff
+      message=839496ff
+      prompt=93a1a1ff
+      placeholder=586e75ff
+      input=839496ff
+      match=cb4b16ff
+      selection=073642ff
+      selection-text=93a1a1ff
+      selection-match=cb4b16ff
+      counter=586e75ff
+      border=fdf6e3ff
+      EOF
         else
           wallpaper=${solarizedLightWallpaper}
           cat > "$waybar_temporary_file" <<'EOF'
@@ -108,10 +127,26 @@ let
           backdrop-color "#fdf6e3"
       }
       EOF
+          cat > "$fuzzel_temporary_file" <<'EOF'
+      [colors]
+      background=fdf6e3ff
+      text=657b83ff
+      message=657b83ff
+      prompt=586e75ff
+      placeholder=93a1a1ff
+      input=657b83ff
+      match=cb4b16ff
+      selection=eee8d5ff
+      selection-text=586e75ff
+      selection-match=cb4b16ff
+      counter=93a1a1ff
+      border=002b36ff
+      EOF
         fi
 
         mv "$waybar_temporary_file" "$waybar_theme_file"
         mv "$niri_temporary_file" "$niri_theme_file"
+        mv "$fuzzel_temporary_file" "$fuzzel_theme_file"
         pkill -x -USR2 waybar || true
         set_wallpaper "$wallpaper"
       }
@@ -295,6 +330,7 @@ in
   programs.fuzzel = {
     enable = true;
     settings.main = {
+      include = fuzzelThemeFile;
       terminal = "ghostty -e";
       layer = "overlay";
     };
@@ -409,7 +445,7 @@ in
 
   systemd.user.services.waybar-theme-watcher = {
     Unit = {
-      Description = "Keep Waybar, Niri, and the wallpaper in sync with the system color scheme";
+      Description = "Keep Waybar, Niri, Fuzzel, and the wallpaper in sync with the system color scheme";
       PartOf = [ config.wayland.systemd.target ];
       Wants = [ "awww-daemon.service" ];
       After = [ "awww-daemon.service" ];
