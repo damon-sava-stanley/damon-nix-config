@@ -348,7 +348,10 @@ in
         format-charging = "🔋⚡ {capacity}%";
         states.warning = 19;
       };
-      clock.format = "{:%a %b %d  %H:%M}";
+      clock = {
+        format = "{:%a %b %d  %H:%M}";
+        on-click = "${pkgs.brave}/bin/brave https://calendar.google.com";
+      };
       tray.spacing = 10;
     };
 
