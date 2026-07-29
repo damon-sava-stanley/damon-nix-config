@@ -8,7 +8,7 @@
 let
   waybarThemeFile = "${config.xdg.cacheHome}/waybar/solarized.css";
   niriThemeFile = "${config.xdg.cacheHome}/niri/solarized.kdl";
-  fuzzelThemeFile = "${config.xdg.cacheHome}/fuzzel/solarized.ini";
+  fuzzelThemeFile = "${config.xdg.cacheHome}/theme-sync/fuzzel.ini";
   solarizedDarkWallpaper = "${pkgs.nixos-artwork.wallpapers.nineish-solarized-dark}/share/backgrounds/nixos/nix-wallpaper-nineish-solarized-dark.png";
   solarizedLightWallpaper = "${pkgs.nixos-artwork.wallpapers.nineish-solarized-light}/share/backgrounds/nixos/nix-wallpaper-nineish-solarized-light.png";
 
