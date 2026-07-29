@@ -156,6 +156,7 @@ in
       pkgs.keepassxc
       pkgs.lsof
       pkgs.networkmanager_dmenu
+      pkgs.networkmanagerapplet
       pkgs.playerctl
       pkgs.pwvucontrol
       pkgs.python314
@@ -392,6 +393,9 @@ in
   xdg.configFile."networkmanager-dmenu/config.ini".text = ''
     [dmenu]
     dmenu_command = fuzzel
+
+    [editor]
+    gui = ${pkgs.networkmanagerapplet}/bin/nm-connection-editor
   '';
 
   systemd.user.services.waybar-theme-watcher = {
