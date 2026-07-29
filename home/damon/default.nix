@@ -156,6 +156,7 @@ in
       pkgs.keepassxc
       pkgs.lsof
       pkgs.playerctl
+      pkgs.pwvucontrol
       pkgs.ripgrep
       unstablePkgs.codex
       pkgs.dropbox
@@ -332,6 +333,7 @@ in
       wireplumber = {
         format = "🔊 {volume}%";
         format-muted = "🔇 muted";
+        on-click = "pwvucontrol";
       };
       memory.format = "🧠 {percentage}%";
       backlight.format = "☀️ {percent}%";
