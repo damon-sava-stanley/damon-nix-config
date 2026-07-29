@@ -155,6 +155,7 @@ in
       pkgs.haskell-language-server
       pkgs.keepassxc
       pkgs.lsof
+      pkgs.networkmanager_dmenu
       pkgs.playerctl
       pkgs.pwvucontrol
       pkgs.python314
@@ -331,6 +332,7 @@ in
         format-wifi = "{essid}";
         format-ethernet = "wired";
         format-disconnected = "offline";
+        on-click = "${pkgs.networkmanager_dmenu}/bin/networkmanager_dmenu";
       };
 
       wireplumber = {
@@ -386,6 +388,11 @@ in
       }
     '';
   };
+
+  xdg.configFile."networkmanager-dmenu/config.ini".text = ''
+    [dmenu]
+    dmenu_command = fuzzel
+  '';
 
   systemd.user.services.waybar-theme-watcher = {
     Unit = {
