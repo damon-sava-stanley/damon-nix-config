@@ -6,6 +6,7 @@
   hardware.graphics.enable = true;
 
   services.geoclue2.enable = true;
+  services.automatic-timezoned.enable = true;
 
   xdg.portal = {
     extraPortals = [ pkgs.darkman ];
@@ -28,10 +29,12 @@
   };
 
   services.logind.settings.Login = {
-    HandleLidSwitch = "suspend";
-    HandleLidSwitchExternalPower = "suspend";
+    HandleLidSwitch = "suspend-then-hibernate";
+    HandleLidSwitchExternalPower = "suspend-then-hibernate";
     HandleLidSwitchDocked = "ignore";
   };
+
+  systemd.sleep.settings.Sleep.HibernateDelaySec = "2h";
 
   services.pipewire = {
     enable = true;
