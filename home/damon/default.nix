@@ -16,8 +16,10 @@ let
     name = "waybar-theme-watcher";
     runtimeInputs = [
       pkgs.coreutils
+      pkgs.darkman
       pkgs.glib
       pkgs.procps
+      pkgs.systemd
       pkgs.awww
     ];
     text = ''
@@ -43,7 +45,7 @@ let
         done
       }
 
-      apply_theme() {
+      read_portal_mode() {
         portal_value="$(
           gdbus call \
             --session \
@@ -54,6 +56,34 @@ let
             color-scheme 2>/dev/null || true
         )"
 
+        if [[ "$portal_value" == *"uint32 1"* ]]; then
+          echo dark
+        elif [[ "$portal_value" == *"uint32 2"* ]]; then
+          echo light
+        else
+          echo unknown
+        fi
+      }
+
+      repair_portal() {
+        mode=$1
+
+        # Darkman is the source of truth. Give xdg-desktop-portal time to
+        # relay the change, then recover it if its cached value is stale.
+        for _ in {1..10}; do
+          if [[ "$(read_portal_mode)" == "$mode" ]]; then
+            return
+          fi
+          sleep 0.1
+        done
+
+        echo "Restarting xdg-desktop-portal: its color scheme is stale" >&2
+        systemctl --user restart xdg-desktop-portal.service || true
+      }
+
+      apply_theme() {
+        mode=$1
+
         mkdir -p \
           "$(dirname "$waybar_theme_file")" \
           "$(dirname "$niri_theme_file")" \
@@ -62,7 +92,7 @@ let
         niri_temporary_file="$niri_theme_file.tmp.$$"
         fuzzel_temporary_file="$fuzzel_theme_file.tmp.$$"
 
-        if [[ "$portal_value" == *"uint32 1"* ]]; then
+        if [[ "$mode" == dark ]]; then
           wallpaper=${solarizedDarkWallpaper}
           cat > "$waybar_temporary_file" <<'EOF'
       @define-color bar_background #002b36;
@@ -151,22 +181,27 @@ let
         set_wallpaper "$wallpaper"
       }
 
-      apply_theme
+      mode="$(darkman get 2>/dev/null || true)"
+      if [[ "$mode" != dark && "$mode" != light ]]; then
+        mode="$(read_portal_mode)"
+      fi
+      if [[ "$mode" != dark && "$mode" != light ]]; then
+        mode=light
+      fi
+      apply_theme "$mode"
 
       if [[ "''${1:-}" == "--once" ]]; then
         exit 0
       fi
 
       while true; do
-        while IFS= read -r event; do
-          if [[ "$event" == *"org.freedesktop.appearance"*"color-scheme"* ]]; then
-            apply_theme
+        while IFS= read -r mode; do
+          if [[ "$mode" == dark || "$mode" == light ]]; then
+            apply_theme "$mode"
+            repair_portal "$mode"
           fi
         done < <(
-          gdbus monitor \
-            --session \
-            --dest org.freedesktop.portal.Desktop \
-            --object-path /org/freedesktop/portal/desktop 2>/dev/null || true
+          darkman watch 2>/dev/null || true
         )
         sleep 1
       done
@@ -451,8 +486,16 @@ in
     Unit = {
       Description = "Keep Waybar, Niri, Fuzzel, and the wallpaper in sync with the system color scheme";
       PartOf = [ config.wayland.systemd.target ];
-      Wants = [ "awww-daemon.service" ];
-      After = [ "awww-daemon.service" ];
+      Wants = [
+        "awww-daemon.service"
+        "darkman.service"
+        "xdg-desktop-portal.service"
+      ];
+      After = [
+        "awww-daemon.service"
+        "darkman.service"
+        "xdg-desktop-portal.service"
+      ];
       Before = [ "waybar.service" ];
     };
 
