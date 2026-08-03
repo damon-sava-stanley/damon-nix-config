@@ -205,7 +205,6 @@ in
 
     file.".agents/skills" = {
       source = ./codex-skills;
-      recursive = true;
     };
 
     # Keep this at the version used when Home Manager is first activated.
