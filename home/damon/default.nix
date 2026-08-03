@@ -330,6 +330,7 @@ in
 
   programs.git = {
     enable = true;
+    ignores = [ ".local" ];
     lfs.enable = true;
     settings.init.defaultBranch = "main";
     settings.push.autoSetupRemote = true;
