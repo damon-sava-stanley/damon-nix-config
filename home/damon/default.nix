@@ -260,6 +260,7 @@ in
       (pkgs.vimPlugins.sidekick-nvim.overrideAttrs (_: {
         runtimeDeps = [ ];
       }))
+      pkgs.vimPlugins.nvim-genghis
       pkgs.vimPlugins.nvim-lspconfig
       pkgs.vimPlugins.plenary-nvim
       pkgs.vimPlugins.telescope-nvim
@@ -284,6 +285,12 @@ in
         { desc = "Find text" })
       vim.keymap.set("n", "<leader>fr", telescope.oldfiles,
         { desc = "Find recent files" })
+
+      local genghis = require("genghis")
+      vim.keymap.set("n", "<leader>rn", genghis.renameFile,
+        { desc = "Rename file" })
+      vim.keymap.set("n", "<leader>yp", genghis.copyFilepathWithTilde,
+        { desc = "Copy filepath" })
 
       require("sidekick").setup({
         nes = {
