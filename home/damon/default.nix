@@ -220,6 +220,7 @@ in
       # Haskell toolchain; Cabal manages project dependencies.
       pkgs.cabal-install
       pkgs.brightnessctl
+      pkgs.bottom
       pkgs.fd
       pkgs.ghc
       pkgs.haskell-language-server
@@ -430,7 +431,10 @@ in
         format-muted = "🔇 muted";
         on-click = "pwvucontrol";
       };
-      memory.format = "🧠 {percentage}%";
+      memory = {
+        format = "🧠 {percentage}%";
+        on-click = "${pkgs.ghostty}/bin/ghostty -e ${pkgs.bottom}/bin/btm --basic";
+      };
       backlight.format = "☀️ {percent}%";
       battery = {
         format = "🔋 {capacity}%";
