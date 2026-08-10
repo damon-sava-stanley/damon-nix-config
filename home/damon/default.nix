@@ -338,7 +338,11 @@ in
 
   programs.git = {
     enable = true;
-    ignores = [ ".local" ];
+    ignores = [
+      ".env"
+      ".env*"
+      ".local"
+    ];
     lfs.enable = true;
     settings.init.defaultBranch = "main";
     settings.push.autoSetupRemote = true;
