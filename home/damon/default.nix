@@ -327,6 +327,24 @@ in
       vim.keymap.set("n", "<leader>fr", telescope.oldfiles,
         { desc = "Find recent files" })
 
+      vim.api.nvim_create_user_command("Rename", function(opts)
+        local buffer = vim.api.nvim_get_current_buf()
+        local old = vim.api.nvim_buf_get_name(buffer)
+        if old == "" then
+          vim.notify("Cannot rename an unnamed buffer", vim.log.levels.ERROR)
+          return
+        end
+
+        local new = vim.fs.joinpath(vim.fs.dirname(old), opts.args)
+        local ok, err = vim.uv.fs_rename(old, new)
+        if not ok then
+          vim.notify(err, vim.log.levels.ERROR)
+          return
+        end
+
+        vim.api.nvim_buf_set_name(buffer, new)
+      end, { nargs = 1, desc = "Rename the current file" })
+
       local genghis = require("genghis")
       vim.keymap.set("n", "<leader>rn", genghis.renameFile,
         { desc = "Rename file" })
