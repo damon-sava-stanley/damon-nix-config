@@ -9,6 +9,7 @@ let
   waybarThemeFile = "${config.xdg.cacheHome}/waybar/solarized.css";
   niriThemeFile = "${config.xdg.cacheHome}/niri/solarized.kdl";
   fuzzelThemeFile = "${config.xdg.cacheHome}/theme-sync/fuzzel.ini";
+  neovimThemeFile = "${config.xdg.cacheHome}/theme-sync/neovim";
   solarizedDarkWallpaper = "${pkgs.nixos-artwork.wallpapers.nineish-solarized-dark}/share/backgrounds/nixos/nix-wallpaper-nineish-solarized-dark.png";
   solarizedLightWallpaper = "${pkgs.nixos-artwork.wallpapers.nineish-solarized-light}/share/backgrounds/nixos/nix-wallpaper-nineish-solarized-light.png";
 
@@ -26,6 +27,7 @@ let
       waybar_theme_file=${waybarThemeFile}
       niri_theme_file=${niriThemeFile}
       fuzzel_theme_file=${fuzzelThemeFile}
+      neovim_theme_file=${neovimThemeFile}
 
       set_wallpaper() {
         wallpaper=$1
@@ -87,10 +89,12 @@ let
         mkdir -p \
           "$(dirname "$waybar_theme_file")" \
           "$(dirname "$niri_theme_file")" \
-          "$(dirname "$fuzzel_theme_file")"
+          "$(dirname "$fuzzel_theme_file")" \
+          "$(dirname "$neovim_theme_file")"
         waybar_temporary_file="$waybar_theme_file.tmp.$$"
         niri_temporary_file="$niri_theme_file.tmp.$$"
         fuzzel_temporary_file="$fuzzel_theme_file.tmp.$$"
+        neovim_temporary_file="$neovim_theme_file.tmp.$$"
 
         if [[ "$mode" == dark ]]; then
           wallpaper=${solarizedDarkWallpaper}
@@ -174,10 +178,13 @@ let
       EOF
         fi
 
+        printf '%s\n' "$mode" > "$neovim_temporary_file"
         mv "$waybar_temporary_file" "$waybar_theme_file"
         mv "$niri_temporary_file" "$niri_theme_file"
         mv "$fuzzel_temporary_file" "$fuzzel_theme_file"
+        mv "$neovim_temporary_file" "$neovim_theme_file"
         pkill -x -USR2 waybar || true
+        pkill -x -USR1 nvim || true
         set_wallpaper "$wallpaper"
       }
 
@@ -263,6 +270,7 @@ in
       }))
       pkgs.vimPlugins.nvim-genghis
       pkgs.vimPlugins.nvim-lspconfig
+      pkgs.vimPlugins.nvim-solarized-lua
       pkgs.vimPlugins.plenary-nvim
       pkgs.vimPlugins.telescope-nvim
     ];
@@ -272,6 +280,38 @@ in
       vim.g.maplocalleader = " "
 
       vim.opt.autoread = true
+      vim.opt.termguicolors = true
+
+      local poetry_root = "/home/damon/workspace/poetry"
+
+      vim.opt.runtimepath:prepend(poetry_root)
+
+      require("poetry").setup({
+        root = poetry_root,
+      })
+
+      vim.keymap.set("n", "<leader>pd", "<cmd>PoetryDrafts<cr>")
+      vim.keymap.set("n", "<leader>pn", "<cmd>PoetryNewDraft<cr>")
+
+      local function apply_solarized_theme()
+        local theme_file = io.open("${neovimThemeFile}", "r")
+        local mode = theme_file and theme_file:read("*l") or "light"
+        if theme_file then
+          theme_file:close()
+        end
+        if mode ~= "dark" then
+          mode = "light"
+        end
+
+        vim.opt.background = mode
+        vim.cmd.colorscheme("solarized")
+      end
+
+      apply_solarized_theme()
+      vim.api.nvim_create_autocmd("Signal", {
+        pattern = "SIGUSR1",
+        callback = apply_solarized_theme,
+      })
 
       vim.lsp.enable("hls")
 
