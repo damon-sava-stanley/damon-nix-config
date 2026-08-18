@@ -235,10 +235,12 @@ in
       pkgs.lsof
       pkgs.networkmanager_dmenu
       pkgs.networkmanagerapplet
+      pkgs.pandoc
       pkgs.playerctl
       pkgs.pwvucontrol
       pkgs.python314
       pkgs.ripgrep
+      pkgs.texliveSmall
       pkgs.uv
       unstablePkgs.codex
       pkgs.dropbox
