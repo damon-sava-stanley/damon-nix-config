@@ -10,6 +10,7 @@ let
   niriThemeFile = "${config.xdg.cacheHome}/niri/solarized.kdl";
   fuzzelThemeFile = "${config.xdg.cacheHome}/theme-sync/fuzzel.ini";
   neovimThemeFile = "${config.xdg.cacheHome}/theme-sync/neovim";
+  ghosttyThemeFile = "${config.xdg.cacheHome}/theme-sync/ghostty.conf";
   solarizedDarkWallpaper = "${pkgs.nixos-artwork.wallpapers.nineish-solarized-dark}/share/backgrounds/nixos/nix-wallpaper-nineish-solarized-dark.png";
   solarizedLightWallpaper = "${pkgs.nixos-artwork.wallpapers.nineish-solarized-light}/share/backgrounds/nixos/nix-wallpaper-nineish-solarized-light.png";
 
@@ -34,6 +35,19 @@ let
         while IFS= read -r output; do
           niri msg output "$output" off
         done
+    '';
+  };
+
+  ghosttyThemeSync = pkgs.writeShellApplication {
+    name = "ghostty-theme-sync";
+    runtimeInputs = [
+      pkgs.coreutils
+      pkgs.glib
+    ];
+    text = ''
+      ghostty_theme_file=${ghosttyThemeFile}
+      export ghostty_theme_file
+      ${builtins.readFile ./theme-sync/ghostty.sh}
     '';
   };
 
@@ -207,7 +221,8 @@ let
         mv "$niri_temporary_file" "$niri_theme_file"
         mv "$fuzzel_temporary_file" "$fuzzel_theme_file"
         mv "$neovim_temporary_file" "$neovim_theme_file"
-        pkill -x -USR2 waybar || true
+        ${ghosttyThemeSync}/bin/ghostty-theme-sync "$mode"
+        systemctl --user --no-block try-restart waybar.service || true
         pkill -x -USR1 nvim || true
         set_wallpaper "$wallpaper"
       }
@@ -443,6 +458,7 @@ in
     settings = {
       font-size = 12;
       theme = "light:iTerm2 Solarized Light,dark:iTerm2 Solarized Dark";
+      config-file = "?${ghosttyThemeFile}";
     };
   };
 
@@ -576,6 +592,10 @@ in
     '';
   };
 
+  # Waybar's SIGUSR2 reload can leave duplicate bar windows. Ask Home
+  # Manager's service switcher to replace the process instead.
+  systemd.user.services.waybar.Unit.X-SwitchMethod = "restart";
+
   xdg.configFile."networkmanager-dmenu/config.ini".text = ''
     [dmenu]
     dmenu_command = fuzzel
@@ -586,17 +606,16 @@ in
 
   systemd.user.services.waybar-theme-watcher = {
     Unit = {
-      Description = "Keep Waybar, Niri, Fuzzel, and the wallpaper in sync with the system color scheme";
+      Description = "Keep the desktop applications in sync with the system color scheme";
       PartOf = [ config.wayland.systemd.target ];
       Wants = [
         "awww-daemon.service"
         "darkman.service"
-        "xdg-desktop-portal.service"
       ];
       After = [
         "awww-daemon.service"
         "darkman.service"
-        "xdg-desktop-portal.service"
+        "niri.service"
       ];
       Before = [ "waybar.service" ];
     };

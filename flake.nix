@@ -54,7 +54,43 @@
         ];
       };
 
-      checks.${system}.deeley = self.nixosConfigurations.deeley.config.system.build.toplevel;
+      checks.${system} = {
+        deeley = self.nixosConfigurations.deeley.config.system.build.toplevel;
+        ghostty-theme-sync =
+          pkgs.runCommandLocal "ghostty-theme-sync-test"
+            {
+              nativeBuildInputs = [
+                pkgs.bash
+                pkgs.coreutils
+                pkgs.diffutils
+                pkgs.gnugrep
+              ];
+            }
+            ''
+              GHOSTTY_SYNC_SCRIPT=${./home/damon/theme-sync/ghostty.sh} \
+                bash ${./tests/ghostty-theme-sync.bash}
+              touch "$out"
+            '';
+        waybar-lifecycle =
+          let
+            waybarService =
+              self.nixosConfigurations.deeley.config.home-manager.users.damon.systemd.user.services.waybar;
+          in
+          pkgs.runCommandLocal "waybar-lifecycle-test"
+            {
+              nativeBuildInputs = [
+                pkgs.bash
+                pkgs.gnugrep
+              ];
+              HOME_CONFIG = ./home/damon/default.nix;
+              WAYBAR_SWITCH_METHOD =
+                if waybarService.Unit.X-SwitchMethod == null then "unset" else waybarService.Unit.X-SwitchMethod;
+            }
+            ''
+              bash ${./tests/waybar-lifecycle.bash}
+              touch "$out"
+            '';
+      };
 
       devShells.${system}.default = pkgs.mkShell {
         packages = [
