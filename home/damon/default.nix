@@ -281,6 +281,7 @@ in
     stateVersion = "26.05";
   };
 
+  programs.bash.enable = true;
   programs.tmux.enable = true;
 
   programs.neovim = {
