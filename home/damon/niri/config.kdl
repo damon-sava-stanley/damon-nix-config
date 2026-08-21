@@ -115,7 +115,8 @@ binds {
     XF86MonBrightnessUp { spawn "brightnessctl" "set" "5%+"; }
 
     Mod+Shift+S repeat=false allow-inhibiting=false hotkey-overlay-title="Lock screen" { spawn "swaylock" "-f"; }
-    Mod+Shift+P { power-off-monitors; }
+    Mod+Shift+P repeat=false hotkey-overlay-title="Power off non-focused monitors" { spawn "niri-power-off-non-focused"; }
+    Mod+Ctrl+Shift+P repeat=false hotkey-overlay-title="Power off all monitors" { power-off-monitors; }
     Mod+Shift+E { quit; }
     Ctrl+Alt+Delete { quit; }
 }
