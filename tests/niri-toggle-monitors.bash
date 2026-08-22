@@ -34,6 +34,7 @@ export -f niri
 run_helper() {
   : > "$command_log"
   MOCK_COMMAND_LOG="$command_log" \
+    XDG_RUNTIME_DIR="$test_directory" \
     bash "$NIRI_TOGGLE_SCRIPT"
 }
 
@@ -48,23 +49,34 @@ assert_commands() {
   fi
 }
 
-export MOCK_FOCUSED_OUTPUT=DP-1
+state_file="$test_directory/niri-toggle-monitors.state"
+
+export MOCK_FOCUSED_OUTPUT=DP-4
 export MOCK_OUTPUTS_JSON='{
-  "DP-1": {"current_mode": 0},
-  "HDMI-A-1": {"current_mode": 1},
-  "eDP-1": {"current_mode": 0}
+  "DP-4": {"current_mode": 0},
+  "DP-6": {"current_mode": 1},
+  "eDP-1": {"current_mode": null}
 }'
 unset FAIL_FOCUSED_OUTPUT
 run_helper
-assert_commands $'output HDMI-A-1 off\noutput eDP-1 off'
+assert_commands 'output DP-6 off'
+
+if [[ "$(cat "$state_file")" != DP-6 ]]; then
+  printf 'expected saved output DP-6\n' >&2
+  exit 1
+fi
 
 export MOCK_OUTPUTS_JSON='{
-  "DP-1": {"current_mode": 0},
-  "HDMI-A-1": {"current_mode": null},
+  "DP-4": {"current_mode": 0},
   "eDP-1": {"current_mode": null}
 }'
 export FAIL_FOCUSED_OUTPUT=true
 run_helper
-assert_commands $'output HDMI-A-1 on\noutput eDP-1 on'
+assert_commands 'output DP-6 on'
+
+if [[ -e "$state_file" ]]; then
+  printf 'expected monitor toggle state to be cleared\n' >&2
+  exit 1
+fi
 
 printf 'niri monitor toggle tests passed\n'
