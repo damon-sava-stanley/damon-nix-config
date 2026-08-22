@@ -3,6 +3,7 @@
 {
   # Niri is the Wayland compositor and registers a login session.
   programs.niri.enable = true;
+  programs.steam.enable = true;
   hardware.graphics.enable = true;
 
   services.geoclue2.enable = true;

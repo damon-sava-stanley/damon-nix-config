@@ -40,6 +40,8 @@
                 "dropbox"
                 "firefox-bin"
                 "firefox-bin-unwrapped"
+                "steam"
+                "steam-unwrapped"
               ];
 
             home-manager = {
