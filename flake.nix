@@ -58,6 +58,21 @@
 
       checks.${system} = {
         deeley = self.nixosConfigurations.deeley.config.system.build.toplevel;
+        brave-extensions =
+          let
+            homeConfig = self.nixosConfigurations.deeley.config.home-manager.users.damon;
+          in
+          pkgs.runCommandLocal "brave-extensions-test"
+            {
+              nativeBuildInputs = [ pkgs.bash ];
+              BRAVE_EXTENSION_IDS = builtins.concatStringsSep " " (
+                map (extension: extension.id) homeConfig.programs.chromium.extensions
+              );
+            }
+            ''
+              bash ${./tests/brave-extensions.bash}
+              touch "$out"
+            '';
         waybar-bluetooth =
           let
             systemConfig = self.nixosConfigurations.deeley.config;

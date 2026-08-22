@@ -465,6 +465,10 @@ in
         # Dark Reader
         id = "eimadpbcbfnmbkopoojfekhnkhdbieeh";
       }
+      {
+        # KeePassXC-Browser
+        id = "oboonakemofpalcgghocfoadofidjkkk";
+      }
     ];
   };
 
