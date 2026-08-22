@@ -14,28 +14,13 @@ let
   solarizedDarkWallpaper = "${pkgs.nixos-artwork.wallpapers.nineish-solarized-dark}/share/backgrounds/nixos/nix-wallpaper-nineish-solarized-dark.png";
   solarizedLightWallpaper = "${pkgs.nixos-artwork.wallpapers.nineish-solarized-light}/share/backgrounds/nixos/nix-wallpaper-nineish-solarized-light.png";
 
-  niriPowerOffNonFocused = pkgs.writeShellApplication {
-    name = "niri-power-off-non-focused";
+  niriToggleMonitors = pkgs.writeShellApplication {
+    name = "niri-toggle-monitors";
     runtimeInputs = [
       pkgs.jq
       pkgs.niri
     ];
-    text = ''
-      focused_output="$(
-        niri msg --json focused-output |
-          jq --exit-status --raw-output '.name'
-      )"
-
-      niri msg --json outputs |
-        jq --raw-output --arg focused "$focused_output" '
-          to_entries[]
-          | select(.key != $focused and .value.current_mode != null)
-          | .key
-        ' |
-        while IFS= read -r output; do
-          niri msg output "$output" off
-        done
-    '';
+    text = builtins.readFile ./niri/toggle-monitors.sh;
   };
 
   ghosttyThemeSync = pkgs.writeShellApplication {
@@ -272,7 +257,7 @@ in
       pkgs.haskell-language-server
       pkgs.keepassxc
       pkgs.lsof
-      niriPowerOffNonFocused
+      niriToggleMonitors
       pkgs.networkmanager_dmenu
       pkgs.networkmanagerapplet
       pkgs.pandoc

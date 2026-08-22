@@ -71,6 +71,20 @@
                 bash ${./tests/ghostty-theme-sync.bash}
               touch "$out"
             '';
+        niri-toggle-monitors =
+          pkgs.runCommandLocal "niri-toggle-monitors-test"
+            {
+              nativeBuildInputs = [
+                pkgs.bash
+                pkgs.coreutils
+                pkgs.jq
+              ];
+              NIRI_TOGGLE_SCRIPT = ./home/damon/niri/toggle-monitors.sh;
+            }
+            ''
+              bash ${./tests/niri-toggle-monitors.bash}
+              touch "$out"
+            '';
         waybar-lifecycle =
           let
             waybarService =
