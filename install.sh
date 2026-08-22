@@ -10,3 +10,4 @@ sudo cp /etc/nixos/hardware-configuration.nix \
   /etc/nixos/hosts/deeley/hardware-configuration.nix
 sudo nixos-rebuild build --flake /etc/nixos#deeley
 sudo nixos-rebuild switch --flake /etc/nixos#deeley
+systemctl --user stop waybar.service
