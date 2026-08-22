@@ -5,6 +5,11 @@
   programs.niri.enable = true;
   programs.steam.enable = true;
   hardware.graphics.enable = true;
+  hardware.bluetooth = {
+    enable = true;
+    powerOnBoot = true;
+    settings.General.Experimental = true;
+  };
 
   services.geoclue2.enable = true;
   services.automatic-timezoned.enable = true;

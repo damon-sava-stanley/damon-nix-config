@@ -58,6 +58,27 @@
 
       checks.${system} = {
         deeley = self.nixosConfigurations.deeley.config.system.build.toplevel;
+        waybar-bluetooth =
+          let
+            systemConfig = self.nixosConfigurations.deeley.config;
+            homeConfig = systemConfig.home-manager.users.damon;
+            waybarMain = homeConfig.programs.waybar.settings.mainBar;
+          in
+          pkgs.runCommandLocal "waybar-bluetooth-test"
+            {
+              nativeBuildInputs = [ pkgs.bash ];
+              BLUETOOTH_ENABLED = if systemConfig.hardware.bluetooth.enable then "true" else "false";
+              BLUETOOTH_POWER_ON_BOOT = if systemConfig.hardware.bluetooth.powerOnBoot then "true" else "false";
+              BLUETOOTH_EXPERIMENTAL =
+                if systemConfig.hardware.bluetooth.settings.General.Experimental then "true" else "false";
+              MAKO_ENABLED = if homeConfig.services.mako.enable then "true" else "false";
+              WAYBAR_RIGHT_MODULES = builtins.concatStringsSep " " waybarMain.modules-right;
+              WAYBAR_BLUETOOTH_CLICK = waybarMain.bluetooth.on-click or "unset";
+            }
+            ''
+              bash ${./tests/waybar-bluetooth.bash}
+              touch "$out"
+            '';
         ghostty-theme-sync =
           pkgs.runCommandLocal "ghostty-theme-sync-test"
             {

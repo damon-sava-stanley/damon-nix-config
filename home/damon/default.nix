@@ -455,6 +455,8 @@ in
     };
   };
 
+  services.mako.enable = true;
+
   programs.chromium = {
     enable = true;
     package = pkgs.brave;
@@ -488,6 +490,7 @@ in
       modules-center = [ "niri/window" ];
       modules-right = [
         "tray"
+        "bluetooth"
         "network"
         "wireplumber"
         "memory"
@@ -515,6 +518,20 @@ in
         format-ethernet = "wired";
         format-disconnected = "offline";
         on-click = "${pkgs.networkmanager_dmenu}/bin/networkmanager_dmenu";
+      };
+
+      bluetooth = {
+        format = "BT {status}";
+        format-disabled = "BT disabled";
+        format-off = "BT off";
+        format-on = "BT on";
+        format-connected = "BT {device_alias}";
+        format-connected-battery = "BT {device_alias} {device_battery_percentage}%";
+        tooltip-format = "{controller_alias}\t{controller_address}";
+        tooltip-format-connected = "{controller_alias}\t{controller_address}\n\n{device_enumerate}";
+        tooltip-format-enumerate-connected = "{device_alias}\t{device_address}";
+        tooltip-format-enumerate-connected-battery = "{device_alias}\t{device_address}\t{device_battery_percentage}%";
+        on-click = "${pkgs.bzmenu}/bin/bzmenu -l fuzzel --interactive";
       };
 
       wireplumber = {
@@ -562,7 +579,7 @@ in
         color: @active_workspace;
       }
 
-      #window, #tray, #network, #wireplumber,
+      #window, #tray, #bluetooth, #network, #wireplumber,
       #memory, #backlight, #battery, #clock {
         padding: 0 8px;
       }
