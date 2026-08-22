@@ -11,6 +11,8 @@
     settings.General.Experimental = true;
   };
 
+  environment.systemPackages = [ pkgs.xwayland-satellite ];
+
   services.geoclue2.enable = true;
   services.automatic-timezoned.enable = true;
 
