@@ -252,7 +252,10 @@ in
       pkgs.cabal-install
       pkgs.brightnessctl
       pkgs.bottom
+      pkgs.darktable
+      pkgs.exiftool
       pkgs.fd
+      pkgs.gimp3
       pkgs.ghc
       pkgs.haskell-language-server
       pkgs.keepassxc
@@ -264,6 +267,7 @@ in
       pkgs.playerctl
       pkgs.pwvucontrol
       pkgs.python314
+      pkgs.rapid-photo-downloader
       pkgs.ripgrep
       pkgs.texliveSmall
       pkgs.uv
