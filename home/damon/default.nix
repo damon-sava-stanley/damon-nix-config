@@ -263,6 +263,7 @@ in
       niriToggleMonitors
       pkgs.networkmanager_dmenu
       pkgs.networkmanagerapplet
+      pkgs.nodejs
       pkgs.pandoc
       pkgs.playerctl
       pkgs.pwvucontrol
