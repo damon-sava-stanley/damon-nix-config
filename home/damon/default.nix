@@ -272,6 +272,7 @@ in
       pkgs.ripgrep
       pkgs.texliveSmall
       pkgs.uv
+      pkgs.zotero
       unstablePkgs.codex
       pkgs.dropbox
       pkgs.gh
@@ -473,6 +474,10 @@ in
       {
         # KeePassXC-Browser
         id = "oboonakemofpalcgghocfoadofidjkkk";
+      }
+      {
+        # Zotero Connector
+        id = "ekhagklcjbdpajgpjgmbionohlpdbjgc";
       }
     ];
   };

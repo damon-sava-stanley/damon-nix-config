@@ -68,6 +68,9 @@
               BRAVE_EXTENSION_IDS = builtins.concatStringsSep " " (
                 map (extension: extension.id) homeConfig.programs.chromium.extensions
               );
+              HOME_PACKAGE_NAMES = builtins.concatStringsSep " " (
+                map nixpkgs.lib.getName homeConfig.home.packages
+              );
             }
             ''
               bash ${./tests/brave-extensions.bash}
