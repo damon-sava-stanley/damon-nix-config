@@ -342,7 +342,9 @@ in
       })
 
       vim.keymap.set("n", "<leader>pd", "<cmd>PoetryDrafts<cr>")
+      vim.keymap.set("n", "<leader>pl", "<cmd>PoetryLucky<cr>")
       vim.keymap.set("n", "<leader>pn", "<cmd>PoetryNewDraft<cr>")
+      vim.keymap.set("n", "<leader>pr", "<cmd>PoetryDrafts reset<cr>")
 
       local function apply_solarized_theme()
         local theme_file = io.open("${neovimThemeFile}", "r")
