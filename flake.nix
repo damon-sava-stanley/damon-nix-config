@@ -76,6 +76,22 @@
               bash ${./tests/brave-extensions.bash}
               touch "$out"
             '';
+        zotero-extensions =
+          let
+            homeConfig = self.nixosConfigurations.deeley.config.home-manager.users.damon;
+            zoteroPackage = builtins.head (
+              builtins.filter (package: nixpkgs.lib.getName package == "zotero") homeConfig.home.packages
+            );
+          in
+          pkgs.runCommandLocal "zotero-extensions-test"
+            {
+              nativeBuildInputs = [ pkgs.coreutils ];
+              ZOTERO_PACKAGE = zoteroPackage;
+            }
+            ''
+              bash ${./tests/zotero-extensions.bash}
+              touch "$out"
+            '';
         waybar-bluetooth =
           let
             systemConfig = self.nixosConfigurations.deeley.config;

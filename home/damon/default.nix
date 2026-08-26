@@ -14,6 +14,23 @@ let
   solarizedDarkWallpaper = "${pkgs.nixos-artwork.wallpapers.nineish-solarized-dark}/share/backgrounds/nixos/nix-wallpaper-nineish-solarized-dark.png";
   solarizedLightWallpaper = "${pkgs.nixos-artwork.wallpapers.nineish-solarized-light}/share/backgrounds/nixos/nix-wallpaper-nineish-solarized-light.png";
 
+  betterBibtexVersion = "9.0.27";
+  betterBibtex = pkgs.fetchurl {
+    url = "https://github.com/retorquere/zotero-better-bibtex/releases/download/v${betterBibtexVersion}/zotero-better-bibtex-${betterBibtexVersion}.xpi";
+    hash = "sha256-r6W6hbIYd8mZrYklTNIAp76js5XpEPI3mGZU6ryzxys=";
+  };
+  zoteroWithBetterBibtex =
+    pkgs.runCommand "${pkgs.zotero.name}-with-better-bibtex-${betterBibtexVersion}"
+      {
+        meta = pkgs.zotero.meta;
+      }
+      ''
+        cp -a ${pkgs.zotero} "$out"
+        chmod u+w "$out" "$out/lib" "$out/lib/distribution"
+        install -Dm444 ${betterBibtex} \
+          "$out/lib/distribution/extensions/better-bibtex@iris-advies.com.xpi"
+      '';
+
   niriToggleMonitors = pkgs.writeShellApplication {
     name = "niri-toggle-monitors";
     runtimeInputs = [
@@ -272,7 +289,7 @@ in
       pkgs.ripgrep
       pkgs.texliveSmall
       pkgs.uv
-      pkgs.zotero
+      zoteroWithBetterBibtex
       unstablePkgs.codex
       pkgs.dropbox
       pkgs.gh
