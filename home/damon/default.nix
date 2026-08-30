@@ -333,6 +333,8 @@ in
       vim.opt.autoread = true
       vim.opt.termguicolors = true
 
+      dofile("${./neovim/roll.lua}").setup()
+
       local poetry_root = "/home/damon/workspace/poetry"
 
       vim.opt.runtimepath:prepend(poetry_root)

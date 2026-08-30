@@ -142,6 +142,16 @@
               bash ${./tests/niri-toggle-monitors.bash}
               touch "$out"
             '';
+        neovim-roll =
+          pkgs.runCommandLocal "neovim-roll-test"
+            {
+              nativeBuildInputs = [ pkgs.neovim ];
+            }
+            ''
+              ROLL_LUA=${./home/damon/neovim/roll.lua} \
+                nvim --headless -u NONE -i NONE -l ${./tests/neovim-roll.lua}
+              touch "$out"
+            '';
         waybar-lifecycle =
           let
             waybarService =
