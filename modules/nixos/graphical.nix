@@ -16,6 +16,23 @@
   services.geoclue2.enable = true;
   services.automatic-timezoned.enable = true;
 
+  # Niri cannot bind key releases yet. keyd exposes a real press/release layer
+  # for the user-level hold-to-dictate listener instead.
+  services.keyd = {
+    enable = true;
+    keyboards.dictation = {
+      ids = [ "*" ];
+      settings = {
+        main.rightalt = "layer(dictate)";
+        dictate = { };
+      };
+    };
+  };
+  users.groups.keyd = { };
+  # keyd switches to this group before creating its IPC socket. Starting with
+  # the group already selected avoids requiring CAP_SETGID in the hardened unit.
+  systemd.services.keyd.serviceConfig.Group = "keyd";
+
   xdg.portal = {
     extraPortals = [ pkgs.darkman ];
     config.niri."org.freedesktop.impl.portal.Settings" = "darkman";

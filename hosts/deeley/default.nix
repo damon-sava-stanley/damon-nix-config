@@ -23,6 +23,7 @@
     description = "Damon";
     extraGroups = [
       "networkmanager"
+      "keyd"
       "wheel"
     ];
   };

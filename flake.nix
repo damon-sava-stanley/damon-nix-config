@@ -4,6 +4,10 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
     nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
+    dictate-src = {
+      url = "github:msf/dictate";
+      flake = false;
+    };
 
     home-manager = {
       url = "github:nix-community/home-manager/release-26.05";
@@ -17,6 +21,7 @@
       nixpkgs,
       nixpkgs-unstable,
       home-manager,
+      dictate-src,
     }:
     let
       system = "x86_64-linux";
@@ -48,7 +53,7 @@
               useGlobalPkgs = true;
               useUserPackages = true;
               extraSpecialArgs = {
-                inherit unstablePkgs;
+                inherit dictate-src unstablePkgs;
               };
               users.damon = import ./home/damon;
             };
@@ -155,6 +160,89 @@
             }
             ''
               bash ${./tests/niri-toggle-monitors.bash}
+              touch "$out"
+            '';
+        dictate-config =
+          let
+            systemConfig = self.nixosConfigurations.deeley.config;
+            homeConfig = systemConfig.home-manager.users.damon;
+            keyboard =
+              systemConfig.services.keyd.keyboards.dictation or {
+                ids = [ ];
+                settings = { };
+              };
+            listener =
+              homeConfig.systemd.user.services.dictate-key-listener or {
+                Install.WantedBy = [ ];
+                Service.ExecStart = "unset";
+              };
+          in
+          pkgs.runCommandLocal "dictate-config-test"
+            {
+              nativeBuildInputs = [ pkgs.bash ];
+              KEYD_ENABLED = if systemConfig.services.keyd.enable then "true" else "false";
+              KEYD_IDS = builtins.concatStringsSep " " keyboard.ids;
+              KEYD_RIGHTALT = keyboard.settings.main.rightalt or "unset";
+              KEYD_DICTATE_LAYER = if keyboard.settings ? dictate then "true" else "false";
+              DAMON_GROUPS = builtins.concatStringsSep " " systemConfig.users.users.damon.extraGroups;
+              KEYD_GROUP_DEFINED = if systemConfig.users.groups ? keyd then "true" else "false";
+              KEYD_SERVICE_GROUP = systemConfig.systemd.services.keyd.serviceConfig.Group or "unset";
+              LISTENER_WANTED_BY = builtins.concatStringsSep " " listener.Install.WantedBy;
+              LISTENER_EXEC_START = listener.Service.ExecStart;
+            }
+            ''
+              bash ${./tests/dictate-config.bash}
+              touch "$out"
+            '';
+        dictate-control =
+          pkgs.runCommandLocal "dictate-control-test"
+            {
+              nativeBuildInputs = [
+                pkgs.bash
+                pkgs.coreutils
+              ];
+              DICTATE_CONTROL_SCRIPT = ./home/damon/dictate/control.sh;
+              TEST_BASH = "${pkgs.bash}/bin/bash";
+            }
+            ''
+              bash ${./tests/dictate-control.bash}
+              touch "$out"
+            '';
+        dictate-listener =
+          pkgs.runCommandLocal "dictate-listener-test"
+            {
+              nativeBuildInputs = [
+                pkgs.bash
+                pkgs.coreutils
+              ];
+              DICTATE_LISTENER_SCRIPT = ./home/damon/dictate/listen.sh;
+              TEST_BASH = "${pkgs.bash}/bin/bash";
+            }
+            ''
+              bash ${./tests/dictate-listener.bash}
+              touch "$out"
+            '';
+        dictate-runtime =
+          let
+            homePackages = self.nixosConfigurations.deeley.config.home-manager.users.damon.home.packages;
+            dictatePackage = builtins.head (
+              builtins.filter (package: nixpkgs.lib.getName package == "dictate") homePackages
+            );
+            controllerPackage = builtins.head (
+              builtins.filter (package: nixpkgs.lib.getName package == "dictate-control") homePackages
+            );
+          in
+          pkgs.runCommandLocal "dictate-runtime-test"
+            {
+              nativeBuildInputs = [ pkgs.gnugrep ];
+            }
+            ''
+              test -x ${dictatePackage}/bin/dictate
+              test -x ${dictatePackage}/bin/whisper-stream
+              ${dictatePackage}/bin/dictate --help 2>&1 | grep -F -- "list-devices"
+              ${dictatePackage}/bin/whisper-stream --help 2>&1 | grep -F -- "--step"
+              grep -F -- "wtype" ${dictatePackage}/bin/dictate
+              grep -F -- "ggml-large-v3-turbo-q5_0.bin" ${controllerPackage}/bin/dictate-control
               touch "$out"
             '';
         neovim-roll =

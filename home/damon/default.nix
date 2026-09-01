@@ -1,5 +1,6 @@
 {
   config,
+  dictate-src,
   pkgs,
   unstablePkgs,
   ...
@@ -38,6 +39,72 @@ let
       pkgs.niri
     ];
     text = builtins.readFile ./niri/toggle-monitors.sh;
+  };
+
+  whisperCpp = pkgs.whisper-cpp.override {
+    vulkanSupport = true;
+  };
+
+  dictateModel = pkgs.fetchurl {
+    name = "ggml-large-v3-turbo-q5_0.bin";
+    url = "https://huggingface.co/ggerganov/whisper.cpp/resolve/98aa99a0a9db05ae2342309f5096248665f7cba3/ggml-large-v3-turbo-q5_0.bin";
+    hash = "sha256-OUIhcJzVrR9AxG5gMcphvOiJMebgiMGIKUxtWlX/p+I=";
+  };
+
+  dictate = pkgs.buildGoModule {
+    pname = "dictate";
+    version = "0-unstable-2026-03-14";
+    src = dictate-src;
+    vendorHash = "sha256-Y6/dBYyG252dmyVhcmN+25lqD4E0e9Vm5x8aFYC7J/I=";
+    subPackages = [ "cmd/dictate" ];
+
+    nativeBuildInputs = [ pkgs.makeWrapper ];
+
+    postInstall = ''
+      ln -s ${whisperCpp}/bin/whisper-stream "$out/bin/whisper-stream"
+    '';
+
+    postFixup = ''
+      wrapProgram "$out/bin/dictate" \
+        --prefix PATH : ${
+          pkgs.lib.makeBinPath [
+            pkgs.pipewire
+            pkgs.wtype
+          ]
+        }
+    '';
+
+    meta = {
+      description = "Local streaming speech-to-text for focused Wayland inputs";
+      homepage = "https://github.com/msf/dictate";
+      license = pkgs.lib.licenses.gpl2Only;
+      mainProgram = "dictate";
+      platforms = pkgs.lib.platforms.linux;
+    };
+  };
+
+  dictateControl = pkgs.writeShellApplication {
+    name = "dictate-control";
+    runtimeInputs = [
+      pkgs.coreutils
+      pkgs.libnotify
+    ];
+    text = ''
+      DICTATE_BIN=${dictate}/bin/dictate
+      DICTATE_MODEL=${dictateModel}
+      DICTATE_NOTIFY_BIN=${pkgs.libnotify}/bin/notify-send
+      export DICTATE_BIN DICTATE_MODEL DICTATE_NOTIFY_BIN
+      ${builtins.readFile ./dictate/control.sh}
+    '';
+  };
+
+  dictateKeyListener = pkgs.writeShellApplication {
+    name = "dictate-key-listener";
+    runtimeInputs = [
+      dictateControl
+      pkgs.keyd
+    ];
+    text = builtins.readFile ./dictate/listen.sh;
   };
 
   ghosttyThemeSync = pkgs.writeShellApplication {
@@ -277,6 +344,8 @@ in
       pkgs.haskell-language-server
       pkgs.keepassxc
       pkgs.lsof
+      dictate
+      dictateControl
       niriToggleMonitors
       pkgs.networkmanager_dmenu
       pkgs.networkmanagerapplet
@@ -290,6 +359,7 @@ in
       pkgs.texliveSmall
       pkgs.unzip
       pkgs.uv
+      pkgs.wev
       zoteroWithBetterBibtex
       unstablePkgs.codex
       pkgs.dropbox
@@ -667,6 +737,22 @@ in
     };
 
     Install.WantedBy = [ config.wayland.systemd.target ];
+  };
+
+  systemd.user.services.dictate-key-listener = {
+    Unit = {
+      Description = "Hold Right Alt to dictate into the focused Wayland input";
+      PartOf = [ config.wayland.systemd.target ];
+      After = [ "niri.service" ];
+    };
+
+    Service = {
+      ExecStart = "${dictateKeyListener}/bin/dictate-key-listener";
+      Restart = "always";
+      RestartSec = 2;
+    };
+
+    Install.WantedBy = [ "niri.service" ];
   };
 
   systemd.user.services.awww-daemon = {

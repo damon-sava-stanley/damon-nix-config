@@ -1,5 +1,21 @@
 {
   "nodes": {
+    "dictate-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1773488036,
+        "narHash": "sha256-rQ3P3vM0dsz2cBlhxP/pu6iEZAW/1wvG5IyUCX6MLGA=",
+        "owner": "msf",
+        "repo": "dictate",
+        "rev": "9660ce307d9ebf5f0880b00c25f7364577b40879",
+        "type": "github"
+      },
+      "original": {
+        "owner": "msf",
+        "repo": "dictate",
+        "type": "github"
+      }
+    },
     "home-manager": {
       "inputs": {
         "nixpkgs": [
@@ -55,6 +71,7 @@
     },
     "root": {
       "inputs": {
+        "dictate-src": "dictate-src",
         "home-manager": "home-manager",
         "nixpkgs": "nixpkgs",
         "nixpkgs-unstable": "nixpkgs-unstable"
