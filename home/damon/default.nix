@@ -288,12 +288,14 @@ in
       pkgs.rapid-photo-downloader
       pkgs.ripgrep
       pkgs.texliveSmall
+      pkgs.unzip
       pkgs.uv
       zoteroWithBetterBibtex
       unstablePkgs.codex
       pkgs.dropbox
       pkgs.gh
       pkgs.xdg-utils
+      pkgs.zmk-studio
     ];
 
     file.".agents/skills" = {

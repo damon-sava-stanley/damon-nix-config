@@ -76,6 +76,21 @@
               bash ${./tests/brave-extensions.bash}
               touch "$out"
             '';
+        zmk-studio =
+          let
+            homeConfig = self.nixosConfigurations.deeley.config.home-manager.users.damon;
+          in
+          pkgs.runCommandLocal "zmk-studio-test"
+            {
+              nativeBuildInputs = [ pkgs.bash ];
+              HOME_PACKAGE_NAMES = builtins.concatStringsSep " " (
+                map nixpkgs.lib.getName homeConfig.home.packages
+              );
+            }
+            ''
+              bash ${./tests/zmk-studio.bash}
+              touch "$out"
+            '';
         zotero-extensions =
           let
             homeConfig = self.nixosConfigurations.deeley.config.home-manager.users.damon;
