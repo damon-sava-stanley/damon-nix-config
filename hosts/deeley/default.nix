@@ -22,6 +22,7 @@
     isNormalUser = true;
     description = "Damon";
     extraGroups = [
+      "dialout"
       "networkmanager"
       "keyd"
       "wheel"

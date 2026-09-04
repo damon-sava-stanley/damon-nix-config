@@ -83,6 +83,7 @@
             '';
         zmk-studio =
           let
+            systemConfig = self.nixosConfigurations.deeley.config;
             homeConfig = self.nixosConfigurations.deeley.config.home-manager.users.damon;
           in
           pkgs.runCommandLocal "zmk-studio-test"
@@ -91,6 +92,7 @@
               HOME_PACKAGE_NAMES = builtins.concatStringsSep " " (
                 map nixpkgs.lib.getName homeConfig.home.packages
               );
+              DAMON_GROUPS = builtins.concatStringsSep " " systemConfig.users.users.damon.extraGroups;
             }
             ''
               bash ${./tests/zmk-studio.bash}
