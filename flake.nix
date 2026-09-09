@@ -8,6 +8,10 @@
       url = "github:msf/dictate";
       flake = false;
     };
+    citeref-src = {
+      url = "github:urtzienriquez/citeref.nvim";
+      flake = false;
+    };
 
     home-manager = {
       url = "github:nix-community/home-manager/release-26.05";
@@ -22,6 +26,7 @@
       nixpkgs-unstable,
       home-manager,
       dictate-src,
+      citeref-src,
     }:
     let
       system = "x86_64-linux";
@@ -53,7 +58,7 @@
               useGlobalPkgs = true;
               useUserPackages = true;
               extraSpecialArgs = {
-                inherit dictate-src unstablePkgs;
+                inherit citeref-src dictate-src unstablePkgs;
               };
               users.damon = import ./home/damon;
             };
@@ -271,6 +276,31 @@
             }
             ''
               bash ${./tests/neovim-marksman.bash}
+              touch "$out"
+            '';
+        neovim-citations =
+          let
+            homeConfig = self.nixosConfigurations.deeley.config.home-manager.users.damon;
+            pluginPackages = map (
+              plugin: if builtins.isAttrs plugin && plugin ? plugin then plugin.plugin else plugin
+            ) homeConfig.programs.neovim.plugins;
+            pluginByName =
+              name: builtins.head (builtins.filter (plugin: nixpkgs.lib.getName plugin == name) pluginPackages);
+            blinkCmp = pluginByName "blink.cmp";
+            citerefNvim = pluginByName "citeref.nvim";
+          in
+          pkgs.runCommandLocal "neovim-citations-test"
+            {
+              nativeBuildInputs = [ pkgs.neovim ];
+            }
+            ''
+              CITATIONS_LUA=${./home/damon/neovim/citations.lua} \
+                nvim --headless -u NONE -i NONE -l ${./tests/neovim-citations.lua}
+              nvim --headless -u NONE -i NONE \
+                --cmd "set runtimepath^=${citerefNvim}" \
+                --cmd "set runtimepath^=${blinkCmp}" \
+                -c 'lua dofile("${./home/damon/neovim/citations.lua}").setup()' \
+                +qa
               touch "$out"
             '';
         waybar-lifecycle =

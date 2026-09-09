@@ -1,5 +1,21 @@
 {
   "nodes": {
+    "citeref-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1779088120,
+        "narHash": "sha256-JYGvo5t4hZqyhON2r5moUgaGcdar3ZpPuxhIfqSWc+o=",
+        "owner": "urtzienriquez",
+        "repo": "citeref.nvim",
+        "rev": "478e4f2b710e6163204a951d273fb3045c960ff6",
+        "type": "github"
+      },
+      "original": {
+        "owner": "urtzienriquez",
+        "repo": "citeref.nvim",
+        "type": "github"
+      }
+    },
     "dictate-src": {
       "flake": false,
       "locked": {
@@ -71,6 +87,7 @@
     },
     "root": {
       "inputs": {
+        "citeref-src": "citeref-src",
         "dictate-src": "dictate-src",
         "home-manager": "home-manager",
         "nixpkgs": "nixpkgs",

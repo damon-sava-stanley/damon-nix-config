@@ -1,4 +1,5 @@
 {
+  citeref-src,
   config,
   dictate-src,
   pkgs,
@@ -19,6 +20,11 @@ let
   betterBibtex = pkgs.fetchurl {
     url = "https://github.com/retorquere/zotero-better-bibtex/releases/download/v${betterBibtexVersion}/zotero-better-bibtex-${betterBibtexVersion}.xpi";
     hash = "sha256-r6W6hbIYd8mZrYklTNIAp76js5XpEPI3mGZU6ryzxys=";
+  };
+  citerefNvim = pkgs.vimUtils.buildVimPlugin {
+    pname = "citeref.nvim";
+    version = "unstable";
+    src = citeref-src;
   };
   zoteroWithBetterBibtex =
     pkgs.runCommand "${pkgs.zotero.name}-with-better-bibtex-${betterBibtexVersion}"
@@ -387,6 +393,8 @@ in
     vimAlias = true;
 
     plugins = [
+      pkgs.vimPlugins.blink-cmp
+      citerefNvim
       # Sidekick's Copilot integration is optional; omit its unfree language
       # server because only the Codex CLI integration is enabled below.
       (pkgs.vimPlugins.sidekick-nvim.overrideAttrs (_: {
@@ -407,6 +415,7 @@ in
       vim.opt.termguicolors = true
 
       dofile("${./neovim/roll.lua}").setup()
+      dofile("${./neovim/citations.lua}").setup()
 
       local poetry_root = "/home/damon/workspace/poetry"
 
