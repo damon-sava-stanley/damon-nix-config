@@ -344,6 +344,7 @@ in
       pkgs.haskell-language-server
       pkgs.keepassxc
       pkgs.lsof
+      pkgs.marksman
       dictate
       dictateControl
       niriToggleMonitors
@@ -441,6 +442,7 @@ in
       })
 
       vim.lsp.enable("hls")
+      vim.lsp.enable("marksman")
 
       require("telescope").setup({})
 

@@ -257,6 +257,22 @@
                 nvim --headless -u NONE -i NONE -l ${./tests/neovim-roll.lua}
               touch "$out"
             '';
+        neovim-marksman =
+          let
+            homeConfig = self.nixosConfigurations.deeley.config.home-manager.users.damon;
+          in
+          pkgs.runCommandLocal "neovim-marksman-test"
+            {
+              nativeBuildInputs = [ pkgs.bash ];
+              HOME_PACKAGE_NAMES = builtins.concatStringsSep " " (
+                map nixpkgs.lib.getName homeConfig.home.packages
+              );
+              NEOVIM_INIT_LUA = homeConfig.programs.neovim.initLua;
+            }
+            ''
+              bash ${./tests/neovim-marksman.bash}
+              touch "$out"
+            '';
         waybar-lifecycle =
           let
             waybarService =
