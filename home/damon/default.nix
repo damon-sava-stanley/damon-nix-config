@@ -384,7 +384,7 @@ in
     stateVersion = "26.05";
   };
 
-  programs.bash.enable = true;
+  programs.fish.enable = true;
   programs.tmux = {
     enable = true;
     extraConfig = ''

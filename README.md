@@ -7,6 +7,7 @@ The system uses:
 - niri on Wayland
 - greetd with tuigreet
 - Home Manager
+- Fish
 - Neovim
 - Brave
 - Ghostty

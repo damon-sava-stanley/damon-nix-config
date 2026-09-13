@@ -68,6 +68,22 @@
 
       checks.${system} = {
         deeley = self.nixosConfigurations.deeley.config.system.build.toplevel;
+        fish-shell =
+          let
+            systemConfig = self.nixosConfigurations.deeley.config;
+            homeConfig = systemConfig.home-manager.users.damon;
+          in
+          pkgs.runCommandLocal "fish-shell-test"
+            {
+              nativeBuildInputs = [ pkgs.bash ];
+              DAMON_SHELL_PACKAGE = nixpkgs.lib.getName systemConfig.users.users.damon.shell;
+              NIXOS_FISH_ENABLED = if systemConfig.programs.fish.enable then "true" else "false";
+              HOME_FISH_ENABLED = if homeConfig.programs.fish.enable then "true" else "false";
+            }
+            ''
+              bash ${./tests/fish-shell.bash}
+              touch "$out"
+            '';
         brave-extensions =
           let
             homeConfig = self.nixosConfigurations.deeley.config.home-manager.users.damon;
