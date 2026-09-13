@@ -13,6 +13,8 @@
 
   environment.systemPackages = [ pkgs.xwayland-satellite ];
 
+  fonts.packages = [ pkgs.nerd-fonts.fira-code ];
+
   services.geoclue2.enable = true;
   services.automatic-timezoned.enable = true;
 

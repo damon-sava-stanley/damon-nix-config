@@ -567,6 +567,7 @@ in
   programs.ghostty = {
     enable = true;
     settings = {
+      font-family = "FiraCode Nerd Font Mono";
       font-size = 12;
       theme = "light:iTerm2 Solarized Light,dark:iTerm2 Solarized Dark";
       config-file = "?${ghosttyThemeFile}";
