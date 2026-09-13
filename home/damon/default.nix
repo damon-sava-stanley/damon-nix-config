@@ -393,6 +393,10 @@ in
       }
     ];
   };
+  programs.starship = {
+    enable = true;
+    enableFishIntegration = true;
+  };
   programs.tmux = {
     enable = true;
     extraConfig = ''

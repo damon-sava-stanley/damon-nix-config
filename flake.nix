@@ -82,6 +82,9 @@
               FISH_PLUGIN_NAMES = builtins.concatStringsSep " " (
                 map (plugin: plugin.name) homeConfig.programs.fish.plugins
               );
+              STARSHIP_ENABLED = if homeConfig.programs.starship.enable then "true" else "false";
+              STARSHIP_FISH_ENABLED =
+                if homeConfig.programs.starship.enableFishIntegration then "true" else "false";
             }
             ''
               bash ${./tests/fish-shell.bash}

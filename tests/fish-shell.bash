@@ -6,6 +6,8 @@ set -euo pipefail
 : "${NIXOS_FISH_ENABLED:?NIXOS_FISH_ENABLED must be set}"
 : "${HOME_FISH_ENABLED:?HOME_FISH_ENABLED must be set}"
 : "${FISH_PLUGIN_NAMES:?FISH_PLUGIN_NAMES must be set}"
+: "${STARSHIP_ENABLED:?STARSHIP_ENABLED must be set}"
+: "${STARSHIP_FISH_ENABLED:?STARSHIP_FISH_ENABLED must be set}"
 
 if [[ "$DAMON_SHELL_PACKAGE" != fish ]]; then
   printf "Damon's login-shell package is not Fish: %s\n" "$DAMON_SHELL_PACKAGE" >&2
@@ -24,5 +26,15 @@ fi
 
 if [[ " $FISH_PLUGIN_NAMES " != *" z "* ]]; then
   echo "The z plugin is not enabled in Damon's Fish configuration" >&2
+  exit 1
+fi
+
+if [[ "$STARSHIP_ENABLED" != true ]]; then
+  echo "Starship is not enabled in Damon's Home Manager configuration" >&2
+  exit 1
+fi
+
+if [[ "$STARSHIP_FISH_ENABLED" != true ]]; then
+  echo "Starship's Fish integration is not enabled" >&2
   exit 1
 fi
