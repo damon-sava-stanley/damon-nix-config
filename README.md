@@ -33,7 +33,7 @@ Create and commit the lock file on a machine with Nix:
 
 ```console
 nix flake lock
-nix fmt
+nix fmt $(git ls-files '*.nix')
 nix flake check
 ```
 
