@@ -342,6 +342,7 @@ in
       pkgs.cabal-install
       pkgs.brightnessctl
       pkgs.bottom
+      pkgs.chafa
       pkgs.darktable
       pkgs.exiftool
       pkgs.fd
@@ -384,7 +385,14 @@ in
   };
 
   programs.bash.enable = true;
-  programs.tmux.enable = true;
+  programs.tmux = {
+    enable = true;
+    extraConfig = ''
+      set -g allow-passthrough on
+      set -ga update-environment TERM
+      set -ga update-environment TERM_PROGRAM
+    '';
+  };
 
   programs.neovim = {
     enable = true;
