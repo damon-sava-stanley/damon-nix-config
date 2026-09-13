@@ -384,7 +384,15 @@ in
     stateVersion = "26.05";
   };
 
-  programs.fish.enable = true;
+  programs.fish = {
+    enable = true;
+    plugins = [
+      {
+        name = "z";
+        src = pkgs.fishPlugins.z.src;
+      }
+    ];
+  };
   programs.tmux = {
     enable = true;
     extraConfig = ''

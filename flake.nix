@@ -79,6 +79,9 @@
               DAMON_SHELL_PACKAGE = nixpkgs.lib.getName systemConfig.users.users.damon.shell;
               NIXOS_FISH_ENABLED = if systemConfig.programs.fish.enable then "true" else "false";
               HOME_FISH_ENABLED = if homeConfig.programs.fish.enable then "true" else "false";
+              FISH_PLUGIN_NAMES = builtins.concatStringsSep " " (
+                map (plugin: plugin.name) homeConfig.programs.fish.plugins
+              );
             }
             ''
               bash ${./tests/fish-shell.bash}
