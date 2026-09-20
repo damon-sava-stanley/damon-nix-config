@@ -340,6 +340,7 @@ in
     packages = [
       # Haskell toolchain; Cabal manages project dependencies.
       pkgs.cabal-install
+      pkgs.ardour
       pkgs.brightnessctl
       pkgs.bottom
       pkgs.chafa
