@@ -371,6 +371,7 @@ in
       pkgs.wev
       zoteroWithBetterBibtex
       unstablePkgs.codex
+      unstablePkgs.pi-coding-agent
       pkgs.dropbox
       pkgs.gh
       pkgs.xdg-utils
