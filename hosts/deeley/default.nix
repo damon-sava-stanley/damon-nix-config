@@ -4,6 +4,7 @@
   imports = [
     ./hardware-configuration.nix
     ../../modules/nixos/base.nix
+    ../../modules/nixos/cloudflared.nix
     ../../modules/nixos/graphical.nix
     ../../modules/nixos/printing.nix
   ];
