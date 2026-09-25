@@ -336,6 +336,7 @@ in
     sessionVariables = {
       EDITOR = "nvim";
       VISUAL = "nvim";
+      ZETTEL_ROOT = "${config.home.homeDirectory}/Dropbox/000_zettelkasten";
     };
     packages = [
       # Haskell toolchain; Cabal manages project dependencies.
