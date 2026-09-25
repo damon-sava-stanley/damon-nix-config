@@ -345,6 +345,7 @@ in
       pkgs.brightnessctl
       pkgs.bottom
       pkgs.chafa
+      pkgs.cloudflared
       pkgs.darktable
       pkgs.exiftool
       pkgs.fd
