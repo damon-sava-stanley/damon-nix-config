@@ -4,6 +4,10 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
     nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
+    remote-zettel = {
+      url = "git+ssh://git@github.com/damon-sava-stanley/remote-zettel.git";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     dictate-src = {
       url = "github:msf/dictate";
       flake = false;
@@ -27,6 +31,7 @@
       home-manager,
       dictate-src,
       citeref-src,
+      remote-zettel,
     }:
     let
       system = "x86_64-linux";
@@ -40,6 +45,7 @@
         inherit system;
 
         modules = [
+          remote-zettel.nixosModules.default
           ./hosts/deeley
           home-manager.nixosModules.home-manager
           {

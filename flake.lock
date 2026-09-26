@@ -85,13 +85,34 @@
         "type": "github"
       }
     },
+    "remote-zettel": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1790385808,
+        "narHash": "sha256-K/0EcwdTUtpxuAjt70KCphB66MWtSMLgZ9Pom1TyS78=",
+        "ref": "refs/heads/main",
+        "rev": "9d33520e1e0b9abe71c6f5e2977e24f98f16db76",
+        "revCount": 23,
+        "type": "git",
+        "url": "ssh://git@github.com/damon-sava-stanley/remote-zettel.git"
+      },
+      "original": {
+        "type": "git",
+        "url": "ssh://git@github.com/damon-sava-stanley/remote-zettel.git"
+      }
+    },
     "root": {
       "inputs": {
         "citeref-src": "citeref-src",
         "dictate-src": "dictate-src",
         "home-manager": "home-manager",
         "nixpkgs": "nixpkgs",
-        "nixpkgs-unstable": "nixpkgs-unstable"
+        "nixpkgs-unstable": "nixpkgs-unstable",
+        "remote-zettel": "remote-zettel"
       }
     }
   },

@@ -13,6 +13,12 @@
 
   services.fwupd.enable = true;
 
+  services.remote-zettel = {
+    enable = true;
+    dataRoot = "/home/damon/Dropbox/000_zettelkasten";
+    dataOwner = "damon";
+  };
+
   programs.fish.enable = true;
 
   # Recover the Framework touchpad when I2C HID stalls after suspend.
