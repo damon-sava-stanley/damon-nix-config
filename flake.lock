@@ -3,11 +3,11 @@
     "citeref-src": {
       "flake": false,
       "locked": {
-        "lastModified": 1790125592,
-        "narHash": "sha256-LICRfa2/oRlKTNNPdUunxx5RbSgdBQdD2UuTxZ0weOU=",
+        "lastModified": 1790288205,
+        "narHash": "sha256-Wuoo/9xDpH4XTDAu5ZPvGzeLp5YcoLWwGQFQ+SUzCwU=",
         "owner": "urtzienriquez",
         "repo": "citeref.nvim",
-        "rev": "5df0be5090a74fa23ab05434d65593e7114e3361",
+        "rev": "c952d8b187f353fc87191edf1f219ab8d36a8daa",
         "type": "github"
       },
       "original": {
@@ -39,11 +39,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1789267039,
-        "narHash": "sha256-LWiBv9yAYFi2LPbUhDGHPGKYskJQjj2fw12OlyO1uQo=",
+        "lastModified": 1790215976,
+        "narHash": "sha256-VkR1rMGyjU9jtw8ISFx5uqR9e+LEaOlhHwrseFkiIVk=",
         "owner": "nix-community",
         "repo": "home-manager",
-        "rev": "ec172013fa62135f58fb58dd17ae9651e8f39727",
+        "rev": "a6631107a83ceab5872f298a2ea710859c80c4cb",
         "type": "github"
       },
       "original": {
@@ -55,11 +55,11 @@
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1789998861,
-        "narHash": "sha256-62XMQD4WLdMAfdT0/8gJmPH2dKeTw908ryNloAplTr8=",
+        "lastModified": 1790218706,
+        "narHash": "sha256-6e4Na3z008XpdVyOXgfasXIn1aN+z8AXFG+jXdQSyuI=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "1e8bc658fc985ef27ccd66d107d767b32bb7ef98",
+        "rev": "c508844df6c28fa6dabc1b6af70f3ccbd65c5201",
         "type": "github"
       },
       "original": {
@@ -71,11 +71,11 @@
     },
     "nixpkgs-unstable": {
       "locked": {
-        "lastModified": 1790046670,
-        "narHash": "sha256-MYiI+CzL0tuWgRPjGsKCDHqYs2T3OzMlMQWOYWG0qso=",
+        "lastModified": 1790323409,
+        "narHash": "sha256-VVTPf+Hyd5ebpjBMHmrLMSBIeW6ls48Bqtosj7CNKLA=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "6774f7bc253789b113a4f39285dc0fa100abeacc",
+        "rev": "e94cb152ed51bd6e24eb4a41f1460252beb52cd2",
         "type": "github"
       },
       "original": {
@@ -92,11 +92,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1790385808,
-        "narHash": "sha256-K/0EcwdTUtpxuAjt70KCphB66MWtSMLgZ9Pom1TyS78=",
+        "lastModified": 1790393150,
+        "narHash": "sha256-gyeYQAICpNSt6R3gy/gvlaL8t7LZfUno4KFWXyjItK0=",
         "ref": "refs/heads/main",
-        "rev": "9d33520e1e0b9abe71c6f5e2977e24f98f16db76",
-        "revCount": 23,
+        "rev": "605e6611f4b24c3ed84bfa9837e9cff0cb4eb147",
+        "revCount": 27,
         "type": "git",
         "url": "ssh://git@github.com/damon-sava-stanley/remote-zettel.git"
       },
