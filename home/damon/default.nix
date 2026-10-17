@@ -344,6 +344,7 @@ in
       pkgs.ardour
       pkgs.brightnessctl
       pkgs.bottom
+      pkgs.bubblewrap
       pkgs.chafa
       pkgs.cloudflared
       pkgs.darktable
