@@ -47,6 +47,17 @@ let
     text = builtins.readFile ./niri/toggle-monitors.sh;
   };
 
+  totemBattery = pkgs.writeShellApplication {
+    name = "totem-battery";
+    runtimeInputs = [
+      pkgs.python314
+      pkgs.systemd
+    ];
+    text = ''
+      exec python3 ${./bin/totem-battery.py} "$@"
+    '';
+  };
+
   whisperCpp = pkgs.whisper-cpp.override {
     vulkanSupport = true;
   };
@@ -359,6 +370,7 @@ in
       dictate
       dictateControl
       niriToggleMonitors
+      totemBattery
       pkgs.networkmanager_dmenu
       pkgs.networkmanagerapplet
       pkgs.nodejs
