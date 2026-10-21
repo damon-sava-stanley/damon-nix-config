@@ -27,6 +27,10 @@
     ${pkgs.kmod}/bin/modprobe i2c_hid_acpi
   '';
 
+  # The external displays sometimes fail to return after S4 resume. Keep
+  # suspend-then-hibernate in suspend while AC power is available.
+  systemd.sleep.settings.Sleep.HibernateOnACPower = false;
+
   users.users.damon = {
     isNormalUser = true;
     description = "Damon";

@@ -3,6 +3,15 @@
 {
   # Niri is the Wayland compositor and registers a login session.
   programs.niri.enable = true;
+  # Smithay before July 2026 kept CRTC reservations for vanished DP-MST
+  # connectors, leaving a connected monitor invisible after resume.
+  # https://github.com/Smithay/smithay/pull/2076
+  programs.niri.package = pkgs.niri.overrideAttrs (old: {
+    postPatch = (old.postPatch or "") + ''
+      patch -d "$cargoDepsCopy/source-git-0/smithay-drm-extras-0.1.0" -p1 \
+        < ${./patches/smithay-mst-crtc-leak.patch}
+    '';
+  });
   programs.steam.enable = true;
   hardware.graphics.enable = true;
   hardware.bluetooth = {
