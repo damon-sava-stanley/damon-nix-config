@@ -17,6 +17,12 @@
     enable = true;
     dataRoot = "/home/damon/Dropbox/000_zettelkasten";
     dataOwner = "damon";
+    cloudflareAccess = {
+      teamDomain = "late-thunder-9219.cloudflareaccess.com";
+      audience = "68d97452fec8a3717afe57ce54949614ed41ea5f5cad9c52b68c988404d255a9";
+      publicHostname = "zettel.ss-damon.com";
+    };
+    enablePiChat = true;
   };
 
   programs.fish.enable = true;
