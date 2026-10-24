@@ -384,6 +384,7 @@ in
       pkgs.unzip
       pkgs.uv
       pkgs.wev
+      pkgs.wl-clipboard
       zoteroWithBetterBibtex
       unstablePkgs.codex
       unstablePkgs.pi-coding-agent
