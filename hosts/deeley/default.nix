@@ -23,6 +23,7 @@
       publicHostname = "zettel.ss-damon.com";
     };
     enablePiChat = true;
+    enableDesktopCapture = true;
   };
 
   programs.fish.enable = true;
