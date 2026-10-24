@@ -147,6 +147,23 @@
               bash ${./tests/zotero-extensions.bash}
               touch "$out"
             '';
+        waybar-codex =
+          let
+            bar =
+              self.nixosConfigurations.deeley.config.home-manager.users.damon.programs.waybar.settings.mainBar;
+          in
+          assert builtins.elem "custom/codex" bar.modules-right;
+          assert bar."custom/codex".interval == 300;
+          assert bar."custom/codex".return-type == "json";
+          pkgs.runCommandLocal "waybar-codex-test"
+            {
+              nativeBuildInputs = [ pkgs.python3 ];
+              CODEX_HELPER = ./home/damon/bin/waybar-codex.py;
+            }
+            ''
+              PYTHONDONTWRITEBYTECODE=1 python3 ${./tests/waybar-codex.py}
+              touch "$out"
+            '';
         waybar-bluetooth =
           let
             systemConfig = self.nixosConfigurations.deeley.config;

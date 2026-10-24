@@ -38,6 +38,13 @@ let
           "$out/lib/distribution/extensions/better-bibtex@iris-advies.com.xpi"
       '';
 
+  waybarCodex = pkgs.writeShellApplication {
+    name = "waybar-codex";
+    text = ''
+      exec ${pkgs.python3}/bin/python3 ${./bin/waybar-codex.py} ${unstablePkgs.codex}/bin/codex
+    '';
+  };
+
   niriToggleMonitors = pkgs.writeShellApplication {
     name = "niri-toggle-monitors";
     runtimeInputs = [
@@ -653,6 +660,7 @@ in
         "memory"
         "backlight"
         "battery"
+        "custom/codex"
         "clock"
       ];
 
@@ -710,6 +718,14 @@ in
         format = "{:%a %b %d  %H:%M}";
         on-click = "${pkgs.brave}/bin/brave https://calendar.google.com";
       };
+      "custom/codex" = {
+        exec = "${waybarCodex}/bin/waybar-codex";
+        return-type = "json";
+        interval = 300;
+        format = "{}";
+        escape = true;
+        on-click = "${pkgs.brave}/bin/brave https://chatgpt.com/codex/settings/usage";
+      };
       tray.spacing = 10;
     };
 
@@ -737,12 +753,24 @@ in
       }
 
       #window, #tray, #bluetooth, #network, #wireplumber,
-      #memory, #backlight, #battery, #clock {
+      #memory, #backlight, #battery, #custom-codex, #clock {
         padding: 0 8px;
       }
 
       #battery.charging {
         color: @battery_charging;
+      }
+
+      #custom-codex.warning {
+        color: #b58900;
+      }
+
+      #custom-codex.critical {
+        color: @battery_low;
+      }
+
+      #custom-codex.unavailable {
+        opacity: 0.6;
       }
 
       #battery.warning:not(.charging) {
