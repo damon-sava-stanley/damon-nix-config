@@ -26,14 +26,19 @@ let
     version = "unstable";
     src = citeref-src;
   };
+  # Stable's 9.0.6 crashes indexing HTML with newer ESR 140 runtimes.
+  # Use the locked unstable release with the fix (nixpkgs#561292).
+  zotero = unstablePkgs.zotero;
   zoteroWithBetterBibtex =
-    pkgs.runCommand "${pkgs.zotero.name}-with-better-bibtex-${betterBibtexVersion}"
+    pkgs.runCommand "${zotero.name}-with-better-bibtex-${betterBibtexVersion}"
       {
-        meta = pkgs.zotero.meta;
+        meta = zotero.meta;
       }
       ''
-        cp -a ${pkgs.zotero} "$out"
-        chmod u+w "$out" "$out/lib" "$out/lib/distribution"
+        cp -a ${zotero} "$out"
+        chmod u+w "$out" "$out/lib"
+        mkdir -p "$out/lib/distribution"
+        chmod u+w "$out/lib/distribution"
         install -Dm444 ${betterBibtex} \
           "$out/lib/distribution/extensions/better-bibtex@iris-advies.com.xpi"
       '';

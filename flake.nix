@@ -38,6 +38,11 @@
       pkgs = nixpkgs.legacyPackages.${system};
       unstablePkgs = import nixpkgs-unstable {
         inherit system;
+        # Zotero's compatible runtime is the upstream Firefox ESR binary.
+        config.allowUnfreePredicate = pkg: nixpkgs.lib.getName pkg == "firefox-esr-140-bin-unwrapped";
+        # Temporary, explicitly accepted exception for Zotero's HTML-indexing fix.
+        # Remove once Zotero ships a supported Mozilla runtime (nixpkgs#561292).
+        config.permittedInsecurePackages = [ "firefox-esr-140-bin-unwrapped-140.17.0esr" ];
       };
     in
     {
