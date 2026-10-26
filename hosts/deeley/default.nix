@@ -12,6 +12,7 @@
   networking.hostName = "deeley";
 
   services.fwupd.enable = true;
+  services.cloudflare-warp.enable = true;
 
   services.remote-zettel = {
     enable = true;

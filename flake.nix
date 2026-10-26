@@ -58,6 +58,7 @@
               pkg:
               builtins.elem (nixpkgs.lib.getName pkg) [
                 "brave"
+                "cloudflare-warp"
                 "dropbox"
                 "firefox-bin"
                 "firefox-bin-unwrapped"
