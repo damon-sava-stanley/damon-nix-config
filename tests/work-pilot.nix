@@ -4,9 +4,10 @@ let
   services = systemConfig.systemd.services;
   web = services.remote-zettel;
 in
-assert lib.assertMsg (release == "56e33577549b7039fd88b4b4782fffe2db0cd81d") "Work pilot must use the approved release";
+assert lib.assertMsg (release == "0d994f54f7c43fcc7af30bfdd2757affdb3af733") "Work pilot must use the approved release";
 assert lib.assertMsg (pilot.enable or false) "Work pilot services must be explicitly enabled";
 assert lib.assertMsg (pilot.enableExecution or false) "Deeley's reviewed live pilot explicitly enables queueing";
+assert lib.assertMsg (pilot.enableContinuation or false) "Deeley's migrated ledger requires continuation-v1";
 assert pilot.baseCommit == "bb48c49b1ddeba9a8f6934b505d553dafbf9094b";
 assert pilot.documentsRoot == "/home/damon/Dropbox/agent-workspace";
 assert pilot.checkCommand == "test -d drafts && git diff --check";
