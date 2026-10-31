@@ -38,7 +38,7 @@ credentials and remote were preserved; the periodic timer remains enabled.
 The canonical implementation now lives in this configuration repository, not the
 older source copies in Remote Zettel. Edit/build here for subsequent changes.
 
-## Application bridge (configured; live activation/smoke pending)
+## Application bridge (deployed and live-smoked)
 
 `modules/note-checkpoint-bridge.nix` defines a system service running as `damon`,
 with a private runtime socket `/run/zettel-checkpoint/control.sock`. It authenticates
@@ -60,9 +60,9 @@ services.zettel-checkpoint-bridge.enable = true;
 services.remote-zettel.noteCheckpointSocket = "/run/zettel-checkpoint/control.sock";
 ```
 
-These switches are set in the reviewed configuration but live activation and smoke
-verification remain pending. Start with a disposable-note smoke,
-including stopped-bridge write denial. Run the existing user checkpoint first:
+These switches are active on Deeley. Disposable-note chat creation/edit, recovery,
+stopped-bridge write denial, restart/retry and cleanup passed; see
+[the deployment record](deployments/note-checkpoint-gates.md). Run the existing user checkpoint first:
 the bridge requires the note and backup-state directories to already exist. The
 application's expected root is the host dataRoot, not its private service alias.
 Background/manual writes are unchanged; only interactive create/edit tools are gated.
