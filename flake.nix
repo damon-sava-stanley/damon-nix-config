@@ -79,6 +79,15 @@
       };
 
       checks.${system} = {
+        work-backup = import ./tests/work-backup.nix {
+          inherit pkgs;
+          lib = nixpkgs.lib;
+          systemConfig = self.nixosConfigurations.deeley.config;
+        };
+        work-backup-vm = import ./tests/work-backup-vm.nix {
+          inherit pkgs;
+          lib = nixpkgs.lib;
+        };
         note-checkpoint-bridge-vm = import ./tests/note-checkpoint-bridge-vm.nix {
           inherit pkgs;
           lib = nixpkgs.lib;

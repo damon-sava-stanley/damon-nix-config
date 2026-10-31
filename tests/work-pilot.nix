@@ -6,11 +6,11 @@ let
 in
 assert lib.assertMsg (release == "56e33577549b7039fd88b4b4782fffe2db0cd81d") "Work pilot must use the approved release";
 assert lib.assertMsg (pilot.enable or false) "Work pilot services must be explicitly enabled";
-assert lib.assertMsg (!(pilot.enableExecution or true)) "Real queueing must remain disabled during preparation";
+assert lib.assertMsg (pilot.enableExecution or false) "Deeley's reviewed live pilot explicitly enables queueing";
 assert pilot.baseCommit == "bb48c49b1ddeba9a8f6934b505d553dafbf9094b";
 assert pilot.documentsRoot == "/home/damon/Dropbox/agent-workspace";
 assert pilot.checkCommand == "test -d drafts && git diff --check";
-assert !(web.environment ? WORK_PI_ENROLLMENT);
+assert web.environment ? WORK_PI_ENROLLMENT;
 assert web.environment.WORK_FAKE_WORKER == "false";
 assert web.environment.WORK_SHARED_DOCUMENTS == "true";
 assert web.environment.WORK_STATE_PATH == "/var/lib/remote-zettel/work/state.sqlite";
@@ -22,6 +22,6 @@ assert services.remote-zettel-work-executor-supervisor.serviceConfig.User == "ro
 assert services."remote-zettel-work-executor-check-operation@".serviceConfig.User == "agent";
 assert services."remote-zettel-work-executor-check-operation@".serviceConfig.PrivateNetwork;
 assert services.remote-zettel-work-host.unitConfig.ConditionPathExists == "/var/lib/remote-zettel-work-host/credentials.sqlite";
-pkgs.runCommandLocal "work-pilot-preparation-check" {} ''
+pkgs.runCommandLocal "work-pilot-live-configuration-check" {} ''
   touch "$out"
 ''

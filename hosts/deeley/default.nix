@@ -8,6 +8,7 @@
     ../../modules/nixos/graphical.nix
     ../../modules/nixos/printing.nix
     ../../modules/note-checkpoint-bridge.nix
+    ../../modules/nixos/work-backup.nix
   ];
 
   networking.hostName = "deeley";
@@ -16,6 +17,7 @@
   services.cloudflare-warp.enable = true;
 
   services.zettel-checkpoint-bridge.enable = true;
+  services.remote-zettel-work-backup.enable = true;
 
   services.remote-zettel = {
     enable = true;

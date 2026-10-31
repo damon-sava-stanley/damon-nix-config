@@ -1,4 +1,23 @@
-# Deeley Work pilot: prepared, queueing disabled
+# Deeley Work pilot
+
+## Current status
+
+Deeley runs the explicitly enabled stories execution/review pilot. Source provisioning,
+dedicated login, sequential review, task ACLs, observed sandbox isolation, cancellation,
+web-restart continuity and host-crash recovery passed. Initial and post-smoke manual
+backups passed integrity checks and fresh Dropbox download comparisons. No publisher
+is installed. The current application pin is
+`56e33577549b7039fd88b4b4782fffe2db0cd81d`; the host's Work execution setting and
+`tests/work-pilot.nix` now explicitly require queueing enabled.
+
+See the upstream `docs/deployments/deeley-work-pilot-follow-up.md` for detailed
+live receipts, and [maintained Work backups](work-backups.md) for the new nightly
+backup implementation (tested locally, not yet activated).
+
+## Historical preparation record (before execution enablement)
+
+Everything below records the earlier disabled-queueing preparation, not current
+live deployment status.
 
 The configuration pins Remote Zettel to
 `a07a6894b2df9dd8a7875e9764314e058f8b222a` and prepares the private stories pilot:
