@@ -29,11 +29,11 @@
     enablePiChat = true;
     noteCheckpointSocket = "/run/zettel-checkpoint/control.sock";
     enableDesktopCapture = true;
-    # Preparation only: provision source/login and verify the system before
-    # separately approving real queueing. No publisher is installed.
+    # Bounded stories execution/review pilot; source/login and initial backup
+    # verified. No publisher is installed. Queue tasks explicitly for live smoke.
     workPilot = {
       enable = true;
-      enableExecution = false;
+      enableExecution = true;
       documentsRoot = "/home/damon/Dropbox/agent-workspace";
       baseCommit = "bb48c49b1ddeba9a8f6934b505d553dafbf9094b";
       checkCommand = "test -d drafts && git diff --check";
