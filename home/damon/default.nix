@@ -363,6 +363,8 @@ let
   };
 in
 {
+  imports = [ ./note-checkpoint.nix ];
+
   home = {
     username = "damon";
     homeDirectory = "/home/damon";

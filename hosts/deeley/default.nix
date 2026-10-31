@@ -25,6 +25,15 @@
     };
     enablePiChat = true;
     enableDesktopCapture = true;
+    # Preparation only: provision source/login and verify the system before
+    # separately approving real queueing. No publisher is installed.
+    workPilot = {
+      enable = true;
+      enableExecution = false;
+      documentsRoot = "/home/damon/Dropbox/agent-workspace";
+      baseCommit = "bb48c49b1ddeba9a8f6934b505d553dafbf9094b";
+      checkCommand = "test -d drafts && git diff --check";
+    };
   };
 
   programs.fish.enable = true;
@@ -40,6 +49,8 @@
   systemd.sleep.settings.Sleep.HibernateOnACPower = false;
 
   users.users.damon = {
+    # Keep the note-checkpoint user timer running without an interactive login.
+    linger = true;
     isNormalUser = true;
     description = "Damon";
     shell = pkgs.fish;

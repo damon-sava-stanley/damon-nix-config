@@ -54,14 +54,6 @@
           ./hosts/deeley
           home-manager.nixosModules.home-manager
           {
-            # Temporary workaround for the stale npm dependency hash in remote-zettel.
-            # Remove once the pinned upstream flake includes the corrected hash.
-            services.remote-zettel.package = remote-zettel.packages.${system}.default.overrideAttrs (old: {
-              npmDeps = old.npmDeps.overrideAttrs {
-                outputHash = "sha256-UXW2sL+XdNuo+pUhqzczvubdRyc3i8bKLRvGq5r/U4Q=";
-              };
-            });
-
             nixpkgs.config.allowUnfreePredicate =
               pkg:
               builtins.elem (nixpkgs.lib.getName pkg) [
@@ -87,6 +79,17 @@
       };
 
       checks.${system} = {
+        note-checkpoint = import ./tests/note-checkpoint.nix {
+          inherit pkgs;
+          lib = nixpkgs.lib;
+          systemConfig = self.nixosConfigurations.deeley.config;
+        };
+        work-pilot = import ./tests/work-pilot.nix {
+          inherit pkgs;
+          lib = nixpkgs.lib;
+          systemConfig = self.nixosConfigurations.deeley.config;
+          release = remote-zettel.rev;
+        };
         deeley = self.nixosConfigurations.deeley.config.system.build.toplevel;
         fish-shell =
           let
