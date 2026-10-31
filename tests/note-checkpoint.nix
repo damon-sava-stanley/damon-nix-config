@@ -6,6 +6,9 @@ let
   command = builtins.head service.ExecStart;
 in
 assert systemConfig.users.users.damon.linger;
+assert systemConfig.services.zettel-checkpoint-bridge.enable;
+assert systemConfig.systemd.services.remote-zettel.environment.NOTE_CHECKPOINT_SOCKET == "/run/zettel-checkpoint/control.sock";
+assert systemConfig.systemd.services.remote-zettel.environment.NOTE_CHECKPOINT_ROOT == "/home/damon/Dropbox/000_zettelkasten";
 assert lib.hasPrefix "/nix/store/" command;
 assert lib.hasInfix "--state /home/damon/.local/state/zettel-checkpoint" command;
 assert lib.hasInfix "--notes /home/damon/Dropbox/000_zettelkasten" command;
@@ -18,8 +21,7 @@ pkgs.runCommand "note-checkpoint-test" {
 } ''
   export HOME="$TMPDIR/home"
   mkdir -p "$HOME" source/scripts source/tests
-  cp ${../home/damon/bin/note-checkpoint.py} source/scripts/note-checkpoint.py
-  cp ${./note-checkpoint.py} source/tests/note-checkpoint-test.py
-  python3 source/tests/note-checkpoint-test.py
+  export NOTE_CHECKPOINT_SCRIPT=${../home/damon/bin/note-checkpoint.py}
+  python3 ${./note-checkpoint.py}
   touch "$out"
 ''

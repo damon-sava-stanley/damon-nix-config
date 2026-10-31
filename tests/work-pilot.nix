@@ -4,7 +4,7 @@ let
   services = systemConfig.systemd.services;
   web = services.remote-zettel;
 in
-assert lib.assertMsg (release == "a07a6894b2df9dd8a7875e9764314e058f8b222a") "Work pilot must use the approved release";
+assert lib.assertMsg (release == "56e33577549b7039fd88b4b4782fffe2db0cd81d") "Work pilot must use the approved release";
 assert lib.assertMsg (pilot.enable or false) "Work pilot services must be explicitly enabled";
 assert lib.assertMsg (!(pilot.enableExecution or true)) "Real queueing must remain disabled during preparation";
 assert pilot.baseCommit == "bb48c49b1ddeba9a8f6934b505d553dafbf9094b";

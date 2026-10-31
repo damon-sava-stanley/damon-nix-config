@@ -28,27 +28,53 @@ python3 -m json.tool ~/.local/state/zettel-checkpoint/status.json
 
 ## Migration performed 2026-10-31
 
-Built only the Home Manager-generated checkpoint units and their executable, and
-replaced the two manual live units with symlinks to those outputs. The persistent
-GC root is `~/.local/state/zettel-checkpoint/nix-units`; retain it until a full
-Home Manager generation owns the units. Previous manual unit files are retained in
-`~/.local/state/zettel-checkpoint/pre-nix-units-*`. The old script under
-`~/.local/lib/zettel-checkpoint/` is no longer used.
-
-No full NixOS or Home Manager activation was performed: unrelated pending host
-changes were deliberately not deployed. On the next reviewed system activation,
-Home Manager will replace these two transitional unit symlinks (`force = true` is
-scoped to these exact paths). It will then own the service and timer normally.
-The Git history, credentials and remote are unchanged. A real checkpoint/push
-succeeded using the Nix-built executable after handoff.
+Initially switched only isolated Nix-built units, then the operator activated the
+host configuration. Verified the live units now link through the active Home Manager
+files generation. Removed `~/.local/state/zettel-checkpoint/nix-units` and the unused
+manual script under `~/.local/lib/zettel-checkpoint/`. Prior manual unit copies remain
+in `~/.local/state/zettel-checkpoint/pre-nix-units-*` for reference. Git history,
+credentials and remote were preserved; the periodic timer remains enabled.
 
 The canonical implementation now lives in this configuration repository, not the
 older source copies in Remote Zettel. Edit/build here for subsequent changes.
 
+## Application bridge (configured; live activation/smoke pending)
+
+`modules/note-checkpoint-bridge.nix` defines a system service running as `damon`,
+with a private runtime socket `/run/zettel-checkpoint/control.sock`. It authenticates
+Linux peer UID `remote-zettel` and accepts only `{"version":1,"op":"checkpoint"}`
+followed by a newline. It invokes fixed local-only argv; the request cannot specify
+paths, commands, remotes or environment. Response binds the fixed root and commit.
+
+The sandbox mounts notes read-only and backup state read-write, hides the rest of
+home including SSH credentials, and has no network. The existing user timer retains
+push responsibility. Both paths serialize on the same existing filesystem lock.
+Requests have byte/time limits; subprocess timeout kills its process group. All
+returned failures are generic. Same-owner processes remain outside this boundary.
+
+Deeley now pins checkpoint-capable Remote Zettel revision
+`56e33577549b7039fd88b4b4782fffe2db0cd81d` and configures:
+
+```nix
+services.zettel-checkpoint-bridge.enable = true;
+services.remote-zettel.noteCheckpointSocket = "/run/zettel-checkpoint/control.sock";
+```
+
+These switches are set in the reviewed configuration but live activation and smoke
+verification remain pending. Start with a disposable-note smoke,
+including stopped-bridge write denial. Run the existing user checkpoint first:
+the bridge requires the note and backup-state directories to already exist. The
+application's expected root is the host dataRoot, not its private service alias.
+Background/manual writes are unchanged; only interactive create/edit tools are gated.
+There is no backup-health UI or whole-prompt cancellation lifecycle yet. See Remote
+Zettel's `docs/note-checkpoints.md` and ADR 010 for the full contract and limitations.
+
 ## Verification
 
 ```sh
-nix build .#checks.x86_64-linux.note-checkpoint
+nix build .#checks.x86_64-linux.note-checkpoint \
+  .#checks.x86_64-linux.note-checkpoint-bridge \
+  .#checks.x86_64-linux.note-checkpoint-bridge-vm
 ```
 
 The check asserts the evaluated paths, remote, schedule, private umask and lingering;

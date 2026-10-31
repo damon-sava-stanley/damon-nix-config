@@ -79,6 +79,17 @@
       };
 
       checks.${system} = {
+        note-checkpoint-bridge-vm = import ./tests/note-checkpoint-bridge-vm.nix {
+          inherit pkgs;
+          lib = nixpkgs.lib;
+        };
+        note-checkpoint-bridge = import ./tests/note-checkpoint-bridge.nix {
+          inherit pkgs;
+          lib = nixpkgs.lib;
+          systemConfig = (self.nixosConfigurations.deeley.extendModules {
+            modules = [{ services.zettel-checkpoint-bridge.enable = true; }];
+          }).config;
+        };
         note-checkpoint = import ./tests/note-checkpoint.nix {
           inherit pkgs;
           lib = nixpkgs.lib;

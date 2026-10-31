@@ -14,6 +14,7 @@ def main():
     parser.add_argument('--notes', type=Path, required=True)
     parser.add_argument('--state', type=Path, required=True)
     parser.add_argument('--remote', required=True)
+    parser.add_argument('--local-only', action='store_true', help='Commit locally without requiring network; emit a bounded receipt')
     args = parser.parse_args()
     os.umask(0o077)
     notes = args.notes.resolve(strict=True)
@@ -77,6 +78,9 @@ def main():
             temporary.write_text(json.dumps(status, indent=2) + '\n')
             temporary.replace(status_path)
         save()
+        if args.local_only:
+            print(json.dumps({'version': 1, 'ok': True, 'root': str(notes), 'commit': commit}))
+            return
         # Always retry push, even when there is no new commit. No force, pull or reset.
         pushed = git('push', '--quiet', 'origin', 'HEAD:refs/heads/main', check=False)
         if pushed.returncode:

@@ -1,13 +1,53 @@
 import os
+import fcntl
+import time
 from pathlib import Path
 import subprocess
 import tempfile
 import unittest
 
-SCRIPT = Path(__file__).resolve().parents[1] / 'scripts/note-checkpoint.py'
-IGNORE = '*\n!*/\n!*.md\n!*.bib\n!sources.json\n!.gitignore\n'
+SCRIPT = Path(os.environ.get('NOTE_CHECKPOINT_SCRIPT', Path(__file__).resolve().parents[1] / 'home/damon/bin/note-checkpoint.py'))
 
 class CheckpointTest(unittest.TestCase):
+    def test_local_checkpoint_waits_for_existing_timer_lock(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            notes, state = root / 'notes', root / 'state'
+            notes.mkdir()
+            state.mkdir()
+            (notes / '.gitignore').write_text('')
+            with (state / 'lock').open('a') as lock:
+                fcntl.flock(lock, fcntl.LOCK_EX)
+                child = subprocess.Popen(['python3', str(SCRIPT), '--notes', str(notes), '--state', str(state), '--remote', str(root / 'missing.git'), '--local-only'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                try:
+                    time.sleep(.2)
+                    self.assertIsNone(child.poll())
+                    self.assertFalse((state / 'status.json').exists())
+                    fcntl.flock(lock, fcntl.LOCK_UN)
+                    _, errors = child.communicate(timeout=5)
+                    self.assertEqual(child.returncode, 0, errors.decode())
+                finally:
+                    if child.poll() is None:
+                        child.kill()
+                        child.communicate()
+
+    def test_local_checkpoint_does_not_require_remote(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            notes = root / 'notes'
+            notes.mkdir()
+            (notes / '.gitignore').write_text('')
+            (notes / 'note.md').write_text('recover me')
+            command = ['python3', str(SCRIPT), '--notes', str(notes), '--state', str(root / 'state'), '--remote', str(root / 'missing.git'), '--local-only']
+            result = subprocess.run(command, capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            import json
+            receipt = json.loads(result.stdout)
+            self.assertEqual(receipt['root'], str(notes))
+            self.assertRegex(receipt['commit'], r'^[a-f0-9]{40}$')
+            status = json.loads((root / 'state/status.json').read_text())
+            self.assertNotIn('last_push', status)
+
     def test_history_and_push_retry(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

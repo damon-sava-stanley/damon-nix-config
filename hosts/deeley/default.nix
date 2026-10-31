@@ -7,12 +7,15 @@
     ../../modules/nixos/cloudflared.nix
     ../../modules/nixos/graphical.nix
     ../../modules/nixos/printing.nix
+    ../../modules/note-checkpoint-bridge.nix
   ];
 
   networking.hostName = "deeley";
 
   services.fwupd.enable = true;
   services.cloudflare-warp.enable = true;
+
+  services.zettel-checkpoint-bridge.enable = true;
 
   services.remote-zettel = {
     enable = true;
@@ -24,6 +27,7 @@
       publicHostname = "zettel.ss-damon.com";
     };
     enablePiChat = true;
+    noteCheckpointSocket = "/run/zettel-checkpoint/control.sock";
     enableDesktopCapture = true;
     # Preparation only: provision source/login and verify the system before
     # separately approving real queueing. No publisher is installed.
