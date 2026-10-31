@@ -65,6 +65,20 @@ The first graphical login appears through tuigreet. In niri, use
 `Super+Return` for Ghostty, `Super+D` for fuzzel, `Super+B` for Brave, and
 `Super+Shift+S` to lock the session.
 
+## Manual screensaver
+
+`Super+Shift+T` launches Flying Toasters fullscreen on one display; press
+`Escape` to dismiss it. It never starts automatically, and repeated shortcut
+presses do not open extra copies. You can also run `niri-flying-toasters`.
+
+While the animation is running, SDL inhibits niri's idle detection, suppressing
+swayidle's automatic lock, display-off, and suspend timers. Closing it (including
+a crash) releases inhibition automatically and normal idle timing resumes.
+Dismiss it rather than just switching workspaces: inhibition can remain active
+while it is hidden. swayidle itself stays running, so explicit locking and
+locking before sleep still work.
+This is decoration, not a lock screen: use `Super+Shift+S` when security matters.
+
 ## Dictation
 
 Right Alt is a system-wide hold-to-dictate key. Hold it while speaking and

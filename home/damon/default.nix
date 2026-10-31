@@ -50,6 +50,16 @@ let
     '';
   };
 
+  flyingToasters = pkgs.callPackage ./packages/flying-toasters.nix { };
+  niriFlyingToasters = pkgs.writeShellApplication {
+    name = "niri-flying-toasters";
+    runtimeInputs = [
+      flyingToasters
+      pkgs.util-linux
+    ];
+    text = builtins.readFile ./niri/flying-toasters.sh;
+  };
+
   niriToggleMonitors = pkgs.writeShellApplication {
     name = "niri-toggle-monitors";
     runtimeInputs = [
@@ -382,6 +392,7 @@ in
       dictate
       dictateControl
       niriToggleMonitors
+      niriFlyingToasters
       totemBattery
       pkgs.networkmanager_dmenu
       pkgs.networkmanagerapplet

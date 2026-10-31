@@ -117,6 +117,7 @@ binds {
 
     Mod+Shift+S repeat=false allow-inhibiting=false hotkey-overlay-title="Lock screen" { spawn "swaylock" "-f"; }
     Mod+Shift+P repeat=false hotkey-overlay-title="Toggle non-focused monitors" { spawn "niri-toggle-monitors"; }
+    Mod+Shift+T repeat=false hotkey-overlay-title="Flying Toasters (Escape to dismiss)" { spawn "niri-flying-toasters"; }
     Mod+Ctrl+Shift+P repeat=false hotkey-overlay-title="Power off all monitors" { power-off-monitors; }
     Mod+Shift+E { quit; }
     Ctrl+Alt+Delete { quit; }

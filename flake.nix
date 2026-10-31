@@ -54,6 +54,14 @@
           ./hosts/deeley
           home-manager.nixosModules.home-manager
           {
+            # Temporary workaround for the stale npm dependency hash in remote-zettel.
+            # Remove once the pinned upstream flake includes the corrected hash.
+            services.remote-zettel.package = remote-zettel.packages.${system}.default.overrideAttrs (old: {
+              npmDeps = old.npmDeps.overrideAttrs {
+                outputHash = "sha256-UXW2sL+XdNuo+pUhqzczvubdRyc3i8bKLRvGq5r/U4Q=";
+              };
+            });
+
             nixpkgs.config.allowUnfreePredicate =
               pkg:
               builtins.elem (nixpkgs.lib.getName pkg) [
@@ -204,6 +212,20 @@
             ''
               GHOSTTY_SYNC_SCRIPT=${./home/damon/theme-sync/ghostty.sh} \
                 bash ${./tests/ghostty-theme-sync.bash}
+              touch "$out"
+            '';
+        flying-toasters =
+          pkgs.runCommandLocal "flying-toasters-test"
+            {
+              nativeBuildInputs = [
+                pkgs.bash
+                pkgs.coreutils
+                pkgs.util-linux
+              ];
+              TOASTERS_SCRIPT = ./home/damon/niri/flying-toasters.sh;
+            }
+            ''
+              bash ${./tests/flying-toasters.bash}
               touch "$out"
             '';
         niri-toggle-monitors =
