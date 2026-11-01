@@ -6,6 +6,7 @@
     ../../modules/nixos/base.nix
     ../../modules/nixos/cloudflared.nix
     ../../modules/nixos/graphical.nix
+    ../../modules/nixos/power-policy.nix
     ../../modules/nixos/printing.nix
     ../../modules/note-checkpoint-bridge.nix
     ../../modules/nixos/work-backup.nix
@@ -50,10 +51,6 @@
     ${pkgs.kmod}/bin/modprobe -r i2c_hid_acpi
     ${pkgs.kmod}/bin/modprobe i2c_hid_acpi
   '';
-
-  # The external displays sometimes fail to return after S4 resume. Keep
-  # suspend-then-hibernate in suspend while AC power is available.
-  systemd.sleep.settings.Sleep.HibernateOnACPower = false;
 
   users.users.damon = {
     # Keep the note-checkpoint user timer running without an interactive login.

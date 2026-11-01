@@ -7,7 +7,8 @@ dedicated login, sequential review, task ACLs, observed sandbox isolation, cance
 web-restart continuity and host-crash recovery passed. Initial and post-smoke manual
 backups passed integrity checks and fresh Dropbox download comparisons. No publisher
 is installed. The current application pin is
-`56e33577549b7039fd88b4b4782fffe2db0cd81d`; the host's Work execution setting and
+`4e58d355b800a045f6cfecc33724b4859906fdb9` in the deployment configuration
+(the documentation-only update awaits activation); the host's Work execution setting and
 `tests/work-pilot.nix` now explicitly require queueing enabled.
 
 See the upstream `docs/deployments/deeley-work-pilot-follow-up.md` for detailed

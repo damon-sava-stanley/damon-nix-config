@@ -10,6 +10,7 @@ import pwd
 import shutil
 import signal
 import sqlite3
+import stat
 import subprocess
 import sys
 import tarfile
@@ -65,6 +66,31 @@ def rows(path, sql):
         return db.execute(sql).fetchall()
     finally:
         db.close()
+
+
+def quiescent_rows(path, sql, scratch):
+    """Only for a confirmed stopped writer. Never open the live DB with immutable=1.
+
+    Closed WAL databases may need new WAL/SHM even for mode=ro. Let SQLite create
+    those in private scratch, not the read-only live store. Preserve any committed
+    WAL and rollback journal; regenerate SHM rather than copying stale lock state.
+    """
+    with tempfile.TemporaryDirectory(prefix='.drain-', dir=scratch) as temp:
+        copy = Path(temp) / 'state.sqlite'
+        for suffix in ['', '-wal', '-journal']:
+            source = Path(str(path) + suffix)
+            try:
+                fd = os.open(source, os.O_RDONLY | os.O_NOFOLLOW)
+            except FileNotFoundError:
+                if suffix:
+                    continue
+                raise
+            with os.fdopen(fd, 'rb') as stream:
+                if not stat.S_ISREG(os.fstat(stream.fileno()).st_mode):
+                    raise ValueError('Unexpected operational database file type')
+                with Path(str(copy) + suffix).open('wb') as target:
+                    shutil.copyfileobj(stream, target)
+        return rows(copy, sql)
 
 
 def verify(archive, database_names):
@@ -167,7 +193,22 @@ class Backup:
         ]
 
     def drained(self):
-        return all(rows(path, sql) == [(0,)] for path, sql in self.checks())
+        stopped = set(json.loads(self.recovery.read_text())) if self.recovery.exists() else set()
+        owners = [self.config['webUnit'], 'remote-zettel-work-host.service',
+                  'remote-zettel-work-executor-supervisor.service',
+                  'remote-zettel-work-executor-supervisor.service']
+        for (path, sql), owner in zip(self.checks(), owners):
+            if owner in stopped:
+                state = subprocess.check_output(['systemctl', 'show', owner, '-p', 'ActiveState', '--value'],
+                                                text=True, timeout=10).strip()
+                if state != 'inactive':
+                    raise RuntimeError('Cannot copy a store until its writer is inactive')
+                result = quiescent_rows(path, sql, self.root)
+            else:
+                result = rows(path, sql)
+            if result != [(0,)]:
+                return False
+        return True
 
     def stop(self, units):
         recorded = json.loads(self.recovery.read_text()) if self.recovery.exists() else []

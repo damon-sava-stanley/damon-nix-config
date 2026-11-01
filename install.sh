@@ -4,10 +4,6 @@ set -euo pipefail
 
 repo_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 cd "$repo_dir"
+sudo nixos-rebuild switch --flake path:.#deeley
 
-sudo cp -a flake.nix flake.lock home hosts modules /etc/nixos/
-sudo cp /etc/nixos/hardware-configuration.nix \
-  /etc/nixos/hosts/deeley/hardware-configuration.nix
-nixos-rebuild build --flake /etc/nixos#deeley
-nixos-rebuild switch --sudo --flake /etc/nixos#deeley
-# systemctl --user stop waybar.service
+

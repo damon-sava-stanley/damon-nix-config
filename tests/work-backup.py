@@ -146,6 +146,55 @@ class BackupTests(unittest.TestCase):
             self.assertEqual(result['sqliteDatabases'], 1)
             db.close()
 
+    def test_closed_wal_on_readonly_store_uses_private_quiescent_copy(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = pathlib.Path(temp); source = root / 'readonly'; source.mkdir()
+            scratch = root / 'scratch'; scratch.mkdir()
+            path = source / 'state.sqlite'
+            db = sqlite3.connect(path); db.execute('PRAGMA journal_mode=WAL')
+            db.execute('CREATE TABLE fixture (value TEXT)'); db.execute("INSERT INTO fixture VALUES ('terminal')")
+            db.commit(); db.close()
+            self.assertFalse(pathlib.Path(str(path) + '-wal').exists())
+            path.chmod(0o444); source.chmod(0o555)
+            try:
+                if os.geteuid() != 0:
+                    with self.assertRaises(sqlite3.OperationalError): backup.rows(path, 'SELECT value FROM fixture')
+                self.assertEqual(backup.quiescent_rows(path, 'SELECT value FROM fixture', scratch), [('terminal',)])
+                self.assertFalse(pathlib.Path(str(path) + '-wal').exists())
+                self.assertFalse(pathlib.Path(str(path) + '-shm').exists())
+            finally:
+                source.chmod(0o700); path.chmod(0o600)
+
+    def test_private_copy_requires_recorded_stop_and_inactive_writer(self):
+        with tempfile.TemporaryDirectory() as temp:
+            b = backup.Backup({'backupRoot': temp, 'webUnit': 'web'})
+            with patch.object(b, 'checks', return_value=[(pathlib.Path(temp) / 'state.sqlite', 'query')]):
+                with patch.object(backup, 'rows', return_value=[(0,)]) as live, patch.object(backup, 'quiescent_rows') as frozen:
+                    self.assertTrue(b.drained())
+                    live.assert_called_once(); frozen.assert_not_called()
+                backup.atomic_json(b.recovery, ['web'])
+                with patch.object(backup.subprocess, 'check_output', return_value='active\n'), patch.object(backup, 'quiescent_rows') as frozen:
+                    with self.assertRaises(RuntimeError): b.drained()
+                    frozen.assert_not_called()
+                with patch.object(backup.subprocess, 'check_output', return_value='inactive\n'), patch.object(backup, 'quiescent_rows', return_value=[(0,)]) as frozen:
+                    self.assertTrue(b.drained())
+                    frozen.assert_called_once()
+
+    def test_quiescent_copy_keeps_uncheckpointed_wal(self):
+        import shutil
+        with tempfile.TemporaryDirectory() as temp:
+            root = pathlib.Path(temp); source = root / 'source.sqlite'
+            db = sqlite3.connect(source); db.execute('PRAGMA journal_mode=WAL')
+            db.execute('CREATE TABLE fixture (value TEXT)'); db.commit()
+            db.execute("INSERT INTO fixture VALUES ('from-wal')"); db.commit()
+            # Freeze a synthetic crash snapshot; no writer ever opens these copies.
+            frozen = root / 'frozen.sqlite'
+            shutil.copyfile(source, frozen)
+            shutil.copyfile(str(source) + '-wal', str(frozen) + '-wal')
+            db.close()
+            self.assertEqual(backup.quiescent_rows(frozen, 'SELECT value FROM fixture', root), [('from-wal',)])
+            self.assertFalse(pathlib.Path(str(frozen) + '-shm').exists())
+
     def test_corruption_credentials_and_traversal_rejected(self):
         with tempfile.TemporaryDirectory() as temp:
             archive = pathlib.Path(temp) / 'work.tar.gz'

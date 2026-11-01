@@ -65,6 +65,34 @@ The first graphical login appears through tuigreet. In niri, use
 `Super+Return` for Ghostty, `Super+D` for fuzzel, `Super+B` for Brave, and
 `Super+Shift+S` to lock the session.
 
+## Sleep and power
+
+Automatic sleep is based on keyboard/mouse inactivity in the graphical session,
+not lid position. Closing the lid does not lock, blank, or suspend on either
+power source, so external-monitor use with the lid closed is uninterrupted.
+
+Idle locks after five minutes and blanks displays after ten minutes. On AC the
+machine stays awake: zettel, its tunnel, and associated services remain available.
+On battery, 30 minutes idle triggers suspend, followed by hibernate five minutes
+later. Unplugging after the 30-minute idle threshold starts battery sleep within
+about two seconds; activity cancels the pending idle sleep.
+Manual `systemctl suspend`, `hibernate`, and `suspend-then-hibernate` still work;
+no services execute during actual suspend or hibernation.
+
+Implementation: `modules/nixos/power-policy.nix`, `scripts/power-policy.py`, and
+the swayidle configuration in `home/damon/default.nix`. All logind lid actions
+are ignored. The user `power-policy-idle.service` is armed by swayidle and
+cancelled on activity; there is no system lid watcher. Automatic idle sleep
+requires the graphical session and swayidle to be running. Closing the lid is
+not a security action: explicitly lock before putting the laptop away, and
+manually sleep it before placing it in a bag.
+
+After deployment, verify closed-lid external-monitor work remains uninterrupted
+on both power sources, and test idle lock/blank and battery suspend/hibernate.
+Hibernate/resume and display recovery need real-hardware testing. Inspect
+`journalctl --user -u power-policy-idle` and
+`journalctl -u systemd-suspend-then-hibernate` for issues.
+
 ## Manual screensaver
 
 `Super+Shift+T` launches Flying Toasters fullscreen on one display; press

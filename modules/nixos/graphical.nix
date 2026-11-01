@@ -64,14 +64,6 @@
     rtkit.enable = true;
   };
 
-  services.logind.settings.Login = {
-    HandleLidSwitch = "suspend-then-hibernate";
-    HandleLidSwitchExternalPower = "suspend-then-hibernate";
-    HandleLidSwitchDocked = "ignore";
-  };
-
-  systemd.sleep.settings.Sleep.HibernateDelaySec = "2h";
-
   services.pipewire = {
     enable = true;
     alsa.enable = true;

@@ -12,12 +12,24 @@ let
       ('/var/lib/remote-zettel-work-host/admission.sqlite','sequential_runs','status','terminal'),
       ('/var/lib/remote-zettel-work-executor/runs.sqlite','runs','phase','settled'),
       ('/var/lib/remote-zettel-work-executor/operations/runs.sqlite','runs','phase','settled')]:
-      db=sqlite3.connect(file); db.execute(f'CREATE TABLE {table} ({column} TEXT)')
+      db=sqlite3.connect(file)
+      if table == 'work_runs': db.execute('PRAGMA journal_mode=WAL')
+      db.execute(f'CREATE TABLE {table} ({column} TEXT)')
       db.execute(f'INSERT INTO {table} VALUES (?)',(value,)); db.commit(); db.close()
     for suffix in ["", '-wal', '-shm', '.ownership.sqlite']:
       Path('/var/lib/remote-zettel-work-host/credentials.sqlite'+suffix).write_text('SYNTHETIC SECRET')
     Path('/home/damon/Dropbox/agent-workspace/task.md').write_text('fixture task')
     Path('/var/lib/remote-zettel-work-executor/alias').symlink_to('/etc/shadow')
+  '';
+  coordinator = pkgs.writeText "work-backup-coordinator.py" ''
+    import signal, sqlite3, sys, time
+    db = sqlite3.connect('/var/lib/remote-zettel/work/state.sqlite')
+    db.execute('SELECT * FROM work_runs').fetchall()
+    signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))
+    try:
+      while True: time.sleep(0.1)
+    finally:
+      db.close()
   '';
   tarProbe = pkgs.writeShellScriptBin "tar" ''
     if test -e /var/backups/remote-zettel-work/slow; then
@@ -33,8 +45,8 @@ in pkgs.testers.runNixOSTest {
     imports = [ ../modules/nixos/work-backup.nix ];
     users.users.damon = { isNormalUser = true; uid = 1000; };
     services.remote-zettel-work-backup.enable = true;
-    systemd.services = (lib.genAttrs units (_: {
-      serviceConfig = { ExecStart = "${pkgs.coreutils}/bin/sleep infinity"; };
+    systemd.services = (lib.genAttrs units (unit: {
+      serviceConfig = { ExecStart = if unit == "remote-zettel" then "${pkgs.python3}/bin/python3 ${coordinator}" else "${pkgs.coreutils}/bin/sleep infinity"; };
     })) // {
       remote-zettel-work-backup.path = lib.mkBefore [ tarProbe ];
     };
@@ -50,6 +62,7 @@ in pkgs.testers.runNixOSTest {
     machine.succeed("setfacl -m u:damon:rw /home/damon/Dropbox/agent-workspace/task.md")
     units = "${lib.concatStringsSep " " (map (u: u + ".service") units)}"
     machine.succeed("systemctl start " + units)
+    machine.wait_until_succeeds("test -f /var/lib/remote-zettel/work/state.sqlite-shm")
     machine.succeed("systemctl start remote-zettel-work-backup.service || { cat /var/backups/remote-zettel-work/last-error.txt; exit 1; }")
     machine.succeed("systemctl is-active " + units)
     machine.succeed("python3 -c \"import json; s=json.load(open('/var/backups/remote-zettel-work/status.json')); assert s['result'].startswith('completed:')\"")

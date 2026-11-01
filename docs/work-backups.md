@@ -1,7 +1,18 @@
 # Maintained Work backups
 
-Status: **implemented and offline/VM-tested; not activated or live-smoked.** The
-separate one-time pilot backups remain valid and are not replaced or deleted.
+Status: **service/timer deployed; closed-WAL fix activated and live backup smoke
+passed on 2026-10-31.** The initial attempt failed safely; the corrected run
+`snapshot-20261031T181547Z-utogkff5` completed with 17 operational SQLite integrity
+checks and 12 retained links not followed. Independent local Dropbox-copy checksums
+passed, directory/archive modes are 0700/0600 owned by `damon`, and all four Work
+services are active. The timer's next trigger was verified as 2026-11-01 03:00 EST.
+A fresh Dropbox download at
+`/home/damon/Downloads/snapshot-20261031T181547Z-utogkff5.zip` matched all four
+bundle files, including checksums and metadata. Archive SHA-256:
+`95a0f037fcc6c09a562459ce449b13abd1636d20c98134aac2bda06427829cd2`.
+This verifies the manual service smoke and off-host round trip, not yet an actual
+03:00 timer-triggered run or a full service restoration.
+The separate one-time pilot backups remain valid and are not replaced or deleted.
 
 ## Policy
 
@@ -13,7 +24,11 @@ request. Monitor local disk and Dropbox quota; these archives include retained c
 
 The service first checks idleness without disruption. It then stops only the web
 service to prevent new queueing and rechecks coordinator, host admission and both
-executor stores. An admission race restarts web and skips; it never stops an active
+executor stores. Live checks use normal SQLite locking. For a writer recorded as
+stopped by this invocation and confirmed inactive, checks use private copies of
+the database and any WAL/rollback journal. SHM is regenerated only in scratch.
+This handles closed WAL databases without granting writes to live stores or using
+`immutable=1` on a live database. An admission race restarts web and skips; it never stops an active
 host/executor to force a backup. Once drained, all four services are stopped for
 capture. Do not edit task Markdown externally during a manual capture; no writer
 on another Dropbox device can be locked by this service. GNU tar reports changing
@@ -77,7 +92,10 @@ prove upload. Periodically download from dropbox.com and compare all checksums.
 
 Enable the module in the reviewed NixOS configuration, build/check it and inspect
 the system diff, then manually switch. No agent gets deployment privileges.
-This change has not performed that switch.
+The operator activated the initial module and subsequently the isolated closed-WAL
+hotfix candidate. The corrected manual service invocation passed. Keep the hotfix
+in the maintained deployment checkout when incorporating unrelated configuration
+work; do not rebuild from a revision that lacks it.
 
 Fish-compatible commands after activation:
 

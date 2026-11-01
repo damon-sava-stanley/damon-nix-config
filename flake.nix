@@ -79,6 +79,30 @@
       };
 
       checks.${system} = {
+        power-policy =
+          let
+            cfg = self.nixosConfigurations.deeley.config;
+          in
+          assert cfg.services.logind.settings.Login.HandleLidSwitch == "ignore";
+          assert cfg.systemd.sleep.settings.Sleep.HibernateDelaySec == "5min";
+          assert cfg.systemd.sleep.settings.Sleep.HibernateOnACPower == false;
+          assert cfg.services.logind.settings.Login.HandleLidSwitchExternalPower == "ignore";
+          assert cfg.services.logind.settings.Login.HandleLidSwitchDocked == "ignore";
+          assert !(cfg.systemd.services ? power-policy);
+          assert cfg.home-manager.users.damon.systemd.user.services.power-policy-idle.Service.ExecStart
+            == [ "/run/current-system/sw/bin/power-policy --idle-wait" ];
+          assert builtins.any (timeout:
+            timeout.timeout == 1800
+            && nixpkgs.lib.hasInfix "start power-policy-idle.service" timeout.command
+            && nixpkgs.lib.hasInfix "stop power-policy-idle.service" timeout.resumeCommand
+          ) cfg.home-manager.users.damon.services.swayidle.timeouts;
+          pkgs.runCommandLocal "power-policy-test" { nativeBuildInputs = [ pkgs.python3 ]; } ''
+            mkdir -p scripts tests
+            cp ${./scripts/power-policy.py} scripts/power-policy.py
+            cp ${./tests/power-policy.py} tests/power-policy.py
+            python3 tests/power-policy.py
+            touch "$out"
+          '';
         work-backup = import ./tests/work-backup.nix {
           inherit pkgs;
           lib = nixpkgs.lib;

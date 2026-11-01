@@ -875,6 +875,16 @@ in
     };
   };
 
+  # Remain armed on AC after the idle timeout; cancel as soon as activity resumes.
+  systemd.user.services.power-policy-idle = {
+    Unit = {
+      Description = "Wait for battery while the session is idle";
+      PartOf = [ "graphical-session.target" ];
+      After = [ "graphical-session.target" ];
+    };
+    Service.ExecStart = "/run/current-system/sw/bin/power-policy --idle-wait";
+  };
+
   services.swayidle = {
     enable = true;
 
@@ -896,7 +906,8 @@ in
       }
       {
         timeout = 1800;
-        command = "${pkgs.systemd}/bin/systemctl suspend-then-hibernate";
+        command = "${pkgs.systemd}/bin/systemctl --user start power-policy-idle.service";
+        resumeCommand = "${pkgs.systemd}/bin/systemctl --user stop power-policy-idle.service";
       }
     ];
   };
