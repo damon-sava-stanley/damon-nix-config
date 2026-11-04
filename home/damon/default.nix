@@ -13,8 +13,7 @@ let
   fuzzelThemeFile = "${config.xdg.cacheHome}/theme-sync/fuzzel.ini";
   neovimThemeFile = "${config.xdg.cacheHome}/theme-sync/neovim";
   ghosttyThemeFile = "${config.xdg.cacheHome}/theme-sync/ghostty.conf";
-  solarizedDarkWallpaper = "${pkgs.nixos-artwork.wallpapers.nineish-solarized-dark}/share/backgrounds/nixos/nix-wallpaper-nineish-solarized-dark.png";
-  solarizedLightWallpaper = "${pkgs.nixos-artwork.wallpapers.nineish-solarized-light}/share/backgrounds/nixos/nix-wallpaper-nineish-solarized-light.png";
+  cloudscapeThemeFile = "${config.xdg.cacheHome}/theme-sync/cloudscape";
 
   betterBibtexVersion = "9.0.27";
   betterBibtex = pkgs.fetchurl {
@@ -167,7 +166,6 @@ let
       pkgs.glib
       pkgs.procps
       pkgs.systemd
-      pkgs.awww
     ];
     text = ''
       waybar_theme_file=${waybarThemeFile}
@@ -175,22 +173,11 @@ let
       fuzzel_theme_file=${fuzzelThemeFile}
       neovim_theme_file=${neovimThemeFile}
 
-      set_wallpaper() {
-        wallpaper=$1
-
-        # The daemon and watcher start together with the graphical session.
-        # Give the daemon a moment to create its socket on initial login.
-        for _ in {1..20}; do
-          if awww query >/dev/null 2>&1; then
-            awww img \
-              --resize crop \
-              --transition-type fade \
-              --transition-duration 1 \
-              "$wallpaper"
-            return
-          fi
-          sleep 0.1
-        done
+      set_wallpaper_palette() {
+        palette_file=${cloudscapeThemeFile}
+        mkdir -p "$(dirname "$palette_file")"
+        printf '%s\n' "$1" > "$palette_file.tmp.$$"
+        mv "$palette_file.tmp.$$" "$palette_file"
       }
 
       read_portal_mode() {
@@ -243,7 +230,6 @@ let
         neovim_temporary_file="$neovim_theme_file.tmp.$$"
 
         if [[ "$mode" == dark ]]; then
-          wallpaper=${solarizedDarkWallpaper}
           cat > "$waybar_temporary_file" <<'EOF'
       @define-color bar_background #002b36;
       @define-color bar_foreground #839496;
@@ -283,7 +269,6 @@ let
       border=fdf6e3ff
       EOF
         else
-          wallpaper=${solarizedLightWallpaper}
           cat > "$waybar_temporary_file" <<'EOF'
       @define-color bar_background #fdf6e3;
       @define-color bar_foreground #657b83;
@@ -332,7 +317,7 @@ let
         ${ghosttyThemeSync}/bin/ghostty-theme-sync "$mode"
         systemctl --user --no-block try-restart waybar.service || true
         pkill -x -USR1 nvim || true
-        set_wallpaper "$wallpaper"
+        set_wallpaper_palette "$mode"
       }
 
       mode="$(darkman get 2>/dev/null || true)"
@@ -363,7 +348,10 @@ let
   };
 in
 {
-  imports = [ ./note-checkpoint.nix ];
+  imports = [
+    ./note-checkpoint.nix
+    ./cloudscape
+  ];
 
   home = {
     username = "damon";
@@ -813,12 +801,8 @@ in
     Unit = {
       Description = "Keep the desktop applications in sync with the system color scheme";
       PartOf = [ config.wayland.systemd.target ];
-      Wants = [
-        "awww-daemon.service"
-        "darkman.service"
-      ];
+      Wants = [ "darkman.service" ];
       After = [
-        "awww-daemon.service"
         "darkman.service"
         "niri.service"
       ];
@@ -849,20 +833,6 @@ in
     };
 
     Install.WantedBy = [ "niri.service" ];
-  };
-
-  systemd.user.services.awww-daemon = {
-    Unit = {
-      Description = "Wayland wallpaper daemon";
-      PartOf = [ config.wayland.systemd.target ];
-    };
-
-    Service = {
-      ExecStart = "${pkgs.awww}/bin/awww-daemon";
-      Restart = "on-failure";
-    };
-
-    Install.WantedBy = [ config.wayland.systemd.target ];
   };
 
   programs.swaylock = {

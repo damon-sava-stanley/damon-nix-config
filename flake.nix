@@ -17,6 +17,11 @@
       flake = false;
     };
 
+    papertoy = {
+      url = "github:sin-ack/papertoy/8ad06cf9f22c34018859c51b07a3e2d0b8d28701";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     home-manager = {
       url = "github:nix-community/home-manager/release-26.05";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -32,10 +37,14 @@
       dictate-src,
       citeref-src,
       remote-zettel,
+      papertoy,
     }:
     let
       system = "x86_64-linux";
       pkgs = nixpkgs.legacyPackages.${system};
+      cloudscapeRenderer = import ./home/damon/packages/cloudscape-renderer.nix {
+        inherit papertoy system;
+      };
       unstablePkgs = import nixpkgs-unstable {
         inherit system;
         # Zotero's compatible runtime is the upstream Firefox ESR binary.
@@ -46,6 +55,8 @@
       };
     in
     {
+      packages.${system}.cloudscape-renderer = cloudscapeRenderer;
+
       nixosConfigurations.deeley = nixpkgs.lib.nixosSystem {
         inherit system;
 
@@ -70,7 +81,12 @@
               useGlobalPkgs = true;
               useUserPackages = true;
               extraSpecialArgs = {
-                inherit citeref-src dictate-src unstablePkgs;
+                inherit
+                  citeref-src
+                  dictate-src
+                  unstablePkgs
+                  cloudscapeRenderer
+                  ;
               };
               users.damon = import ./home/damon;
             };
@@ -79,6 +95,10 @@
       };
 
       checks.${system} = {
+        cloudscape = import ./tests/cloudscape.nix {
+          inherit pkgs cloudscapeRenderer;
+          homeConfig = self.nixosConfigurations.deeley.config.home-manager.users.damon;
+        };
         power-policy =
           let
             cfg = self.nixosConfigurations.deeley.config;
@@ -89,9 +109,11 @@
           assert cfg.services.logind.settings.Login.HandleLidSwitchExternalPower == "ignore";
           assert cfg.services.logind.settings.Login.HandleLidSwitchDocked == "ignore";
           assert !(cfg.systemd.services ? power-policy);
-          assert cfg.home-manager.users.damon.systemd.user.services.power-policy-idle.Service.ExecStart
+          assert
+            cfg.home-manager.users.damon.systemd.user.services.power-policy-idle.Service.ExecStart
             == [ "/run/current-system/sw/bin/power-policy --idle-wait" ];
-          assert builtins.any (timeout:
+          assert builtins.any (
+            timeout:
             timeout.timeout == 1800
             && nixpkgs.lib.hasInfix "start power-policy-idle.service" timeout.command
             && nixpkgs.lib.hasInfix "stop power-policy-idle.service" timeout.resumeCommand
@@ -119,9 +141,10 @@
         note-checkpoint-bridge = import ./tests/note-checkpoint-bridge.nix {
           inherit pkgs;
           lib = nixpkgs.lib;
-          systemConfig = (self.nixosConfigurations.deeley.extendModules {
-            modules = [{ services.zettel-checkpoint-bridge.enable = true; }];
-          }).config;
+          systemConfig =
+            (self.nixosConfigurations.deeley.extendModules {
+              modules = [ { services.zettel-checkpoint-bridge.enable = true; } ];
+            }).config;
         };
         note-checkpoint = import ./tests/note-checkpoint.nix {
           inherit pkgs;

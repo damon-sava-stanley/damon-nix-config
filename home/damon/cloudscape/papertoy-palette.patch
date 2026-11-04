@@ -1,0 +1,56 @@
+diff --git a/src/shader.zig b/src/shader.zig
+index f230ec7..c757d1b 100644
+--- a/src/shader.zig
++++ b/src/shader.zig
+@@ -6,6 +6,7 @@ const std = @import("std");
+ const Allocator = std.mem.Allocator;
+ 
+ const gl = @import("zgl");
++const Palette = @import("palette.zig").Palette;
+ 
+ const VERTEX_SHADER_SOURCE =
+     \\#version 330 core
+@@ -40,6 +41,7 @@ const SCREEN_INDICES = [_]u8{
+ 
+ /// The data for Shadertoy uniforms.
+ const UniformData = extern struct {
++    dark: f32 align(16) = 0,
+     resolution: [3]f32 align(16) = .{ 0, 0, 0 },
+     time: f32 align(4) = 1,
+     time_delta: f32 align(4) = 1,
+@@ -88,6 +90,7 @@ pub const Shader = struct {
+     program: gl.Program,
+     /// Uniforms specific to this shader.
+     uniforms: Uniforms,
++    palette: Palette,
+     /// The resolution of the shader.
+     resolution: Resolution,
+     /// The frame rate the shader is expected to run at.
+@@ -161,6 +164,7 @@ pub const Shader = struct {
+ 
+         self.* = .{
+             .program = program,
++            .palette = Palette.init(std.posix.getenv("PAPERTOY_PALETTE_FILE")),
+             .uniforms = .init(.{
+                 .resolution = .{ @floatFromInt(resolution.width), @floatFromInt(resolution.height), 0 },
+                 .frame_rate = @floatFromInt(frame_rate),
+@@ -192,6 +196,7 @@ pub const Shader = struct {
+         const total_ns: f32 = @floatFromInt(now.since(self.first_rendered));
+         const delta_ns: f32 = @floatFromInt(now.since(self.last_rendered));
+ 
++        self.uniforms.data.dark = self.palette.update(delta_ns / std.time.ns_per_s);
+         self.uniforms.data.resolution = .{ @floatFromInt(self.resolution.width), @floatFromInt(self.resolution.height), 0 };
+         self.uniforms.data.frame_rate = @floatFromInt(self.frame_rate);
+         self.uniforms.data.frame = @intCast(self.frame);
+diff --git a/src/shadertoy_preamble.glsl b/src/shadertoy_preamble.glsl
+index 2fec307..f6ab6ce 100644
+--- a/src/shadertoy_preamble.glsl
++++ b/src/shadertoy_preamble.glsl
+@@ -3,6 +3,7 @@
+ #version 330 core
+ 
+ /* layout(binding = 0) */ uniform Globals {
++    uniform float   uDark;
+     uniform vec3    iResolution;
+     uniform float   iTime;
+     uniform float   iTimeDelta;

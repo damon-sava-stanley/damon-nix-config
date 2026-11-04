@@ -93,6 +93,17 @@ Hibernate/resume and display recovery need real-hardware testing. Inspect
 `journalctl --user -u power-policy-idle` and
 `journalctl -u systemd-suspend-then-hibernate` for issues.
 
+## Cloudscape wallpaper
+
+A slowly drifting Solarized cloud shader replaces the static Nix wallpaper.
+`cloudscape.service` manages one low-resolution renderer per enabled monitor;
+the existing theme watcher blends its palette when Darkman changes mode.
+Renderers stop while swaylock is running or their displays are powered off,
+and restart on wake. Output changes are reconciled automatically.
+
+See [`home/damon/cloudscape/README.md`](home/damon/cloudscape/README.md) for
+architecture, controls, validation, and current lifecycle limitations.
+
 ## Manual screensaver
 
 `Super+Shift+T` launches Flying Toasters fullscreen on one display; press

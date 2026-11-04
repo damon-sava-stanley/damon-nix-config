@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Solarized cloudscape study</title>
+<style>
+  :root { color-scheme: dark; font: 14px system-ui, sans-serif; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #002b36; color: #eee8d5; overflow: hidden; }
+  canvas { position: fixed; width: 100%; height: 100%; display: block; }
+  aside { position: fixed; bottom: 24px; left: 24px; width: min(340px, calc(100% - 48px)); padding: 20px; background: #002b36e8; border: 1px solid #586e75; border-radius: 10px; backdrop-filter: blur(12px); }
+  h1 { font-size: 17px; margin: 0 0 6px; font-weight: 550; }
+  p { color: #93a1a1; line-height: 1.5; margin: 0 0 18px; }
+  label { display: grid; grid-template-columns: 1fr auto; gap: 6px; margin: 14px 0; }
+  input { grid-column: 1 / -1; width: 100%; accent-color: #93a1a1; }
+  output { color: #93a1a1; font-variant-numeric: tabular-nums; }
+  .buttons { display: flex; gap: 8px; flex-wrap: wrap; }
+  button { background: #073642; border: 1px solid #586e75; border-radius: 5px; color: #eee8d5; padding: 8px 12px; cursor: pointer; font: inherit; }
+  button:hover { background: #586e75; }
+  small { display: block; color: #93a1a1; margin-top: 14px; }
+  #reveal { position: fixed; bottom: 16px; left: 16px; opacity: .6; }
+  [hidden] { display: none !important; }
+  #error { position: fixed; top: 20px; left: 20px; right: 20px; padding: 20px; background: #002b36; white-space: pre-wrap; }
+</style>
+</head>
+<body>
+<canvas id="sky" aria-label="Slowly drifting Solarized clouds"></canvas>
+<aside id="controls">
+  <h1>Solarized cloudscape</h1>
+  <p>A low-resolution sky study. Soft edges, distinct cloud banks, very little hurry.</p>
+  <div class="buttons">
+    <button id="palette">Switch to dark</button>
+    <button id="pause">Pause</button>
+    <button id="hide">Hide controls</button>
+  </div>
+  <label>Drift <output id="speedValue"></output><input id="speed" type="range" min="0" max="3" step="0.1" value="0.2"></label>
+  <label>Cloud definition <output id="contrastValue"></output><input id="contrast" type="range" min="0.3" max="1.5" step="0.05" value="0.4"></label>
+  <label>Render height <output id="resolutionValue"></output><input id="resolution" type="range" min="180" max="720" step="30" value="300"></label>
+  <small>Space: pause · D: palette · H: controls<br>30 fps cap · palette follows system until toggled</small>
+</aside>
+<button id="reveal" hidden>Show controls</button>
+<pre id="error" role="alert" hidden></pre>
+<script type="module">
+const canvas = document.querySelector('#sky');
+const error = document.querySelector('#error');
+try {
+  const gl = canvas.getContext('webgl', { alpha: false, antialias: false, depth: false, powerPreference: 'low-power' });
+  if (!gl) throw new Error('WebGL is unavailable. Try a browser with hardware acceleration enabled.');
+  const vertex = `
+    attribute vec2 position;
+    void main() { gl_Position = vec4(position, 0.0, 1.0); }
+  `;
+  const fragment = `
+    precision highp float;
+    uniform vec2 resolution;
+    uniform float time;
+    uniform float dark;
+    uniform float definition;
+
+    float hash(vec2 p) {
+      return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+    }
+    float noise(vec2 p) {
+      vec2 i = floor(p), f = fract(p);
+      vec2 u = f*f*(3.0-2.0*f);
+      return mix(mix(hash(i), hash(i+vec2(1,0)), u.x),
+                 mix(hash(i+vec2(0,1)), hash(i+vec2(1,1)), u.x), u.y);
+    }
+    float fbm(vec2 p) {
+      float value = 0.0;
+      float amplitude = 0.5;
+      mat2 turn = mat2(0.8, -0.6, 0.6, 0.8);
+      for (int i = 0; i < 5; i++) {
+        value += amplitude * noise(p);
+        p = turn * p * 2.03 + vec2(13.1, 7.7);
+        amplitude *= 0.5;
+      }
+      return value;
+    }
+    float clouds(vec2 p, float t) {
+      // Slow deformation, separate from the prevailing wind.
+      vec2 warp = vec2(fbm(p * 0.65 + vec2(t * 0.07, 7.0)),
+                       fbm(p * 0.65 + vec2(19.0, -t * 0.05)));
+      return fbm(p + 1.35 * warp);
+    }
+    void main() {
+      vec2 uv = gl_FragCoord.xy / resolution;
+      vec2 p = (uv - 0.5) * vec2(resolution.x / resolution.y, 1.0);
+      float t = time * 0.018;
+      // Flattened billows rather than uniform smoke; no horizon line.
+      vec2 q = p * vec2(3.0, 4.4) + vec2(-t, 0.08*t) + vec2(4.8, 9.2);
+      float body = clouds(q, t);
+      float above = clouds(q + vec2(-0.06, 0.11), t);
+      float coverage = smoothstep(0.34, 0.63, body);
+      float distant = smoothstep(0.36, 0.69,
+        fbm(p * vec2(2.4, 3.6) + vec2(-t * 0.45, 30.0)));
+      // Broad density shading plus a soft directional rim gives rounded banks.
+      float edgeLight = clamp(0.5 + (body - above) * 3.8, 0.0, 1.0);
+      float shade = clamp(0.28 + (body - 0.42) * 1.8 + edgeLight * 0.38, 0.0, 1.0);
+      vec3 lightSky = mix(vec3(0.396, 0.482, 0.514), vec3(0.576, 0.631, 0.631), uv.y);
+      vec3 darkSky = mix(vec3(0.0, 0.169, 0.212), vec3(0.027, 0.212, 0.259), uv.y);
+      vec3 sky = mix(lightSky, darkSky, dark);
+      vec3 shadow = mix(vec3(0.576, 0.631, 0.631), vec3(0.027, 0.212, 0.259), dark);
+      vec3 mid = mix(vec3(0.933, 0.910, 0.835), vec3(0.345, 0.431, 0.459), dark);
+      vec3 highlight = mix(vec3(0.992, 0.965, 0.890), vec3(0.514, 0.580, 0.588), dark);
+      vec3 cloudColor = mix(shadow, mid, smoothstep(0.15, 0.7, shade));
+      cloudColor = mix(cloudColor, highlight, smoothstep(0.65, 1.0, shade) * 0.65);
+      vec3 color = mix(sky, mid, distant * 0.22);
+      color = mix(color, cloudColor, coverage * 0.94);
+      vec3 quiet = mix(vec3(0.72, 0.76, 0.73), vec3(0.06, 0.22, 0.26), dark);
+      color = mix(quiet, color, definition);
+      gl_FragColor = vec4(clamp(color, 0.0, 1.0), 1.0);
+    }
+  `;
+  function compile(type, source) {
+    const shader = gl.createShader(type);
+    gl.shaderSource(shader, source);
+    gl.compileShader(shader);
+    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(shader));
+    return shader;
+  }
+  const program = gl.createProgram();
+  gl.attachShader(program, compile(gl.VERTEX_SHADER, vertex));
+  gl.attachShader(program, compile(gl.FRAGMENT_SHADER, fragment));
+  gl.linkProgram(program);
+  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(program));
+  gl.useProgram(program);
+  const buffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, -1,1, 1,-1, 1,1]), gl.STATIC_DRAW);
+  const position = gl.getAttribLocation(program, 'position');
+  gl.enableVertexAttribArray(position);
+  gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0);
+  const uniforms = Object.fromEntries(['resolution', 'time', 'dark', 'definition'].map(name => [name, gl.getUniformLocation(program, name)]));
+  const sliders = Object.fromEntries(['speed', 'contrast', 'resolution'].map(name => [name, document.getElementById(name)]));
+  let dirty = true;
+  function resize() {
+    const height = Number(sliders.resolution.value);
+    canvas.height = height;
+    canvas.width = Math.min(gl.getParameter(gl.MAX_VIEWPORT_DIMS)[0], Math.round(height * innerWidth / innerHeight));
+    gl.viewport(0, 0, canvas.width, canvas.height);
+    dirty = true;
+  }
+  for (const [name, slider] of Object.entries(sliders)) {
+    const update = () => {
+      document.getElementById(name + 'Value').value = slider.value + (name === 'resolution' ? ' px' : '×');
+      if (name === 'resolution') resize();
+      dirty = true;
+    };
+    slider.addEventListener('input', update);
+    update();
+  }
+  window.addEventListener('resize', resize);
+  const systemDark = matchMedia('(prefers-color-scheme: dark)');
+  const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+  let targetDark = Number(systemDark.matches), currentDark = targetDark;
+  let manualPalette = false, paused = reducedMotion.matches;
+  const paletteButton = document.querySelector('#palette');
+  const pauseButton = document.querySelector('#pause');
+  function labels() {
+    paletteButton.textContent = targetDark ? 'Switch to light' : 'Switch to dark';
+    pauseButton.textContent = paused ? 'Resume' : 'Pause';
+  }
+  paletteButton.onclick = () => { manualPalette = true; targetDark = 1 - targetDark; labels(); dirty = true; };
+  pauseButton.onclick = () => { paused = !paused; labels(); dirty = true; };
+  systemDark.addEventListener('change', event => {
+    if (!manualPalette) { targetDark = Number(event.matches); labels(); dirty = true; }
+  });
+  function toggleControls() {
+    const controls = document.querySelector('#controls');
+    controls.hidden = !controls.hidden;
+    document.querySelector('#reveal').hidden = !controls.hidden;
+  }
+  document.querySelector('#hide').onclick = toggleControls;
+  document.querySelector('#reveal').onclick = toggleControls;
+  window.addEventListener('keydown', event => {
+    if (/INPUT|BUTTON/.test(event.target.tagName) || event.ctrlKey || event.metaKey || event.altKey) return;
+    if (event.code === 'Space') { event.preventDefault(); pauseButton.click(); }
+    if (event.key.toLowerCase() === 'd') paletteButton.click();
+    if (event.key.toLowerCase() === 'h') toggleControls();
+  });
+  labels();
+  let time = 0, last = performance.now(), lastDraw = 0;
+  document.addEventListener('visibilitychange', () => { last = performance.now(); });
+  function frame(now) {
+    requestAnimationFrame(frame);
+    if (document.hidden || now - lastDraw < 1000 / 30) return;
+    const dt = Math.min((now - last) / 1000, 0.1);
+    last = now;
+    lastDraw = now;
+    const moving = !paused && Number(sliders.speed.value) > 0;
+    if (moving) time += dt * Number(sliders.speed.value);
+    const transitioning = Math.abs(currentDark - targetDark) > 0.001;
+    if (reducedMotion.matches) currentDark = targetDark;
+    else if (transitioning) currentDark += (targetDark - currentDark) * (1 - Math.exp(-dt / 0.8));
+    else currentDark = targetDark;
+    if (!dirty && !moving && !transitioning) return;
+    gl.uniform2f(uniforms.resolution, canvas.width, canvas.height);
+    gl.uniform1f(uniforms.time, time);
+    gl.uniform1f(uniforms.dark, currentDark);
+    gl.uniform1f(uniforms.definition, Number(sliders.contrast.value));
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+    dirty = false;
+  }
+  canvas.addEventListener('webglcontextlost', event => {
+    event.preventDefault();
+    error.textContent = 'The graphics context was lost. Reload this page to restart the study.';
+    error.hidden = false;
+  });
+  requestAnimationFrame(frame);
+} catch (cause) {
+  error.textContent = String(cause);
+  error.hidden = false;
+}
+</script>
+</body>
+</html>

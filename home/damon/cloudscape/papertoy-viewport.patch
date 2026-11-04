@@ -1,0 +1,89 @@
+diff --git a/src/main.zig b/src/main.zig
+index 5fe6ba7..2a89303 100644
+--- a/src/main.zig
++++ b/src/main.zig
+@@ -271,6 +271,7 @@ const WlrSurface = struct {
+     pub fn createEgl(allocator: Allocator, display: *wl.Display, compositor: *wl.Compositor, layer_shell: *zwlr.LayerShellV1, fractional_scale_manager: ?*wp.FractionalScaleManagerV1, viewporter: ?*wp.Viewporter, output: *Output, custom_resolution: ?Resolution) !*WlrSurface {
+         const self = try allocator.create(WlrSurface);
+         errdefer allocator.destroy(self);
++        if (custom_resolution != null and viewporter == null) return error.ViewporterRequired;
+ 
+         self.allocator = allocator;
+         self.output = output;
+@@ -319,7 +320,12 @@ const WlrSurface = struct {
+ 
+         // We want to ignore any exclusive zones set by other surfaces.
+         self.wlr_surface.setExclusiveZone(-1);
+-        self.wlr_surface.setSize(self.destination_width, self.destination_height);
++        if (custom_resolution != null) {
++            // Let the compositor choose the full logical size, including rotation.
++            self.wlr_surface.setSize(0, 0);
++        } else {
++            self.wlr_surface.setSize(self.destination_width, self.destination_height);
++        }
+ 
+         // NOTE: When the wp_fractional_scale_manager_v1 protocol is active, the
+         //       application is responsible for rendering at the exact physical
+@@ -327,14 +333,17 @@ const WlrSurface = struct {
+         //       to 1. We were previously always using the output scale here,
+         //       which caused "source rectangle extends outside of the content
+         //       area" errors on scaled outputs.
+-        if (fractional_scale_manager != null) {
++        if (fractional_scale_manager != null or custom_resolution != null) {
+             self.wl_surface.setBufferScale(1);
+         } else {
+             self.wl_surface.setBufferScale(@intCast(self.scale));
+         }
+ 
+         // TODO: Make the user set this.
+-        self.wlr_surface.setAnchor(.{ .top = true, .left = true });
++        self.wlr_surface.setAnchor(.{
++            .top = true, .left = true,
++            .bottom = custom_resolution != null, .right = custom_resolution != null,
++        });
+ 
+         if (fractional_scale_manager) |manager| {
+             self.fractional_scale = try FractionalScale.create(allocator, manager, self.wl_surface);
+@@ -343,7 +352,10 @@ const WlrSurface = struct {
+             // No fractional scale manager available for the current compositor.
+             std.log.warn("No fractional scale manager available, using output scale instead", .{});
+             self.fractional_scale = null;
+-            self.viewport = null;
++            self.viewport = if (custom_resolution != null)
++                try viewporter.?.getViewport(self.wl_surface)
++            else
++                null;
+         }
+         errdefer if (self.fractional_scale) |scale| scale.destroy(allocator);
+ 
+@@ -398,6 +410,9 @@ const WlrSurface = struct {
+     /// Synchronize changes in the output size and scale with the surface.
+     /// Returns whether any changes were applied.
+     pub fn synchronizeOutputChanges(self: *WlrSurface, display: *wl.Display) !bool {
++        // Fixed-size buffers use layer-shell configure dimensions, not physical
++        // wl_output mode dimensions. The supervisor recreates buffers if needed.
++        if (self.custom_resolution != null) return false;
+         try self.output.wait(display);
+ 
+         var expected_width = self.output.width;
+@@ -520,12 +535,18 @@ const WlrSurface = struct {
+ 
+     /// Handle a wlroots surface event.
+     fn listener(wlr_surface: *zwlr.LayerSurfaceV1, event: zwlr.LayerSurfaceV1.Event, self: *WlrSurface) void {
+-        _ = self;
+-
+         switch (event) {
+             .configure => |configure| {
+                 const serial = configure.serial;
+                 wlr_surface.ackConfigure(serial);
++                if (self.custom_resolution != null and configure.width > 0 and configure.height > 0) {
++                    self.destination_width = configure.width;
++                    self.destination_height = configure.height;
++                    const viewport = self.viewport.?;
++                    viewport.setSource(.fromInt(0), .fromInt(0), .fromInt(@intCast(self.width)), .fromInt(@intCast(self.height)));
++                    viewport.setDestination(@intCast(configure.width), @intCast(configure.height));
++                    self.wl_surface.commit();
++                }
+             },
+             .closed => {},
+         }
