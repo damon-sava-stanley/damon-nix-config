@@ -604,6 +604,9 @@ in
     settings = {
       font-family = "FiraCode Nerd Font Mono";
       font-size = 12;
+      background-opacity = 0.5;
+      # Also make backgrounds painted by terminal applications transparent.
+      background-opacity-cells = true;
       theme = "light:iTerm2 Solarized Light,dark:iTerm2 Solarized Dark";
       config-file = "?${ghosttyThemeFile}";
     };
@@ -745,7 +748,7 @@ in
       }
 
       window#waybar {
-        background: @bar_background;
+        background: alpha(@bar_background, 0.5);
         color: @bar_foreground;
       }
 
