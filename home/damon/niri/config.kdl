@@ -44,6 +44,12 @@ window-rule {
     clip-to-geometry true
 }
 
+// Subtle browser transparency; applies to text and images as well as backgrounds.
+window-rule {
+    match app-id=r#"^brave-browser$"#
+    opacity 0.92
+}
+
 prefer-no-csd
 screenshot-path "~/Pictures/Screenshots/Screenshot from %Y-%m-%d %H-%M-%S.png"
 

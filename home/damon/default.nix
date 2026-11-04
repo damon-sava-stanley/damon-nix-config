@@ -605,6 +605,8 @@ in
       font-family = "FiraCode Nerd Font Mono";
       font-size = 12;
       background-opacity = 0.5;
+      # Avoid washed-out light backgrounds with the default linear-corrected blending.
+      alpha-blending = "native";
       # Also make backgrounds painted by terminal applications transparent.
       background-opacity-cells = true;
       theme = "light:iTerm2 Solarized Light,dark:iTerm2 Solarized Dark";
@@ -661,17 +663,27 @@ in
 
       modules-left = [ "niri/workspaces" ];
       modules-center = [ "niri/window" ];
-      modules-right = [
-        "tray"
-        "bluetooth"
-        "network"
-        "wireplumber"
-        "memory"
-        "backlight"
-        "battery"
-        "custom/codex"
-        "clock"
-      ];
+      modules-right = [ "group/status" ];
+
+      "group/status" = {
+        orientation = "horizontal";
+        drawer = {
+          transition-duration = 300;
+          children-class = "status-drawer";
+          transition-left-to-right = false;
+        };
+        modules = [
+          "clock"
+          "tray"
+          "bluetooth"
+          "network"
+          "wireplumber"
+          "memory"
+          "backlight"
+          "battery"
+          "custom/codex"
+        ];
+      };
 
       "niri/workspaces" = {
         format = "{icon}";
@@ -724,7 +736,7 @@ in
         states.warning = 19;
       };
       clock = {
-        format = "{:%a %b %d  %H:%M}";
+        format = "{:%H:%M}";
         on-click = "${pkgs.brave}/bin/brave https://calendar.google.com";
       };
       "custom/codex" = {
