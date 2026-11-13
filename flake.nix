@@ -8,6 +8,11 @@
       url = "git+ssh://git@github.com/damon-sava-stanley/remote-zettel.git";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    # Execution/publisher policy is enrolled independently of web application updates.
+    remote-zettel-runtime = {
+      url = "git+ssh://git@github.com/damon-sava-stanley/remote-zettel.git?rev=e993358520eda0af303c328563e7982e993ef233";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     dictate-src = {
       url = "github:msf/dictate";
       flake = false;
@@ -37,6 +42,7 @@
       dictate-src,
       citeref-src,
       remote-zettel,
+      remote-zettel-runtime,
       papertoy,
     }:
     let
@@ -59,6 +65,7 @@
 
       nixosConfigurations.deeley = nixpkgs.lib.nixosSystem {
         inherit system;
+        specialArgs = { inherit remote-zettel remote-zettel-runtime; };
 
         modules = [
           remote-zettel.nixosModules.default
@@ -129,6 +136,9 @@
           inherit pkgs;
           lib = nixpkgs.lib;
           systemConfig = self.nixosConfigurations.deeley.config;
+          enabledSystemConfig = (self.nixosConfigurations.deeley.extendModules {
+            modules = [ { services.remote-zettel-work-backup.enable = nixpkgs.lib.mkForce true; } ];
+          }).config;
         };
         work-backup-vm = import ./tests/work-backup-vm.nix {
           inherit pkgs;
@@ -155,7 +165,9 @@
           inherit pkgs;
           lib = nixpkgs.lib;
           systemConfig = self.nixosConfigurations.deeley.config;
-          release = remote-zettel.rev;
+          webPackage = remote-zettel.packages.${system}.default;
+          runtimePackage = remote-zettel-runtime.packages.${system}.default;
+          runtimeSource = remote-zettel-runtime.outPath;
         };
         deeley = self.nixosConfigurations.deeley.config.system.build.toplevel;
         fish-shell =

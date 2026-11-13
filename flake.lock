@@ -196,15 +196,36 @@
         ]
       },
       "locked": {
-        "lastModified": 1793583598,
-        "narHash": "sha256-javLg6YAugA1EUWC0tnP9Zdmll+GuCAmT4d7fdsqOI8=",
+        "lastModified": 1794545999,
+        "narHash": "sha256-G1gk+ALAM4mL99mxrTMdgMYvQGw2nIgbI8D4XL2y6GU=",
         "ref": "refs/heads/main",
-        "rev": "56767f32cef52bcf0d5592a50108cebd102997f4",
-        "revCount": 84,
+        "rev": "e993358520eda0af303c328563e7982e993ef233",
+        "revCount": 179,
         "type": "git",
         "url": "ssh://git@github.com/damon-sava-stanley/remote-zettel.git"
       },
       "original": {
+        "type": "git",
+        "url": "ssh://git@github.com/damon-sava-stanley/remote-zettel.git"
+      }
+    },
+    "remote-zettel-runtime": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1794545999,
+        "narHash": "sha256-G1gk+ALAM4mL99mxrTMdgMYvQGw2nIgbI8D4XL2y6GU=",
+        "ref": "refs/heads/main",
+        "rev": "e993358520eda0af303c328563e7982e993ef233",
+        "revCount": 179,
+        "type": "git",
+        "url": "ssh://git@github.com/damon-sava-stanley/remote-zettel.git"
+      },
+      "original": {
+        "rev": "e993358520eda0af303c328563e7982e993ef233",
         "type": "git",
         "url": "ssh://git@github.com/damon-sava-stanley/remote-zettel.git"
       }
@@ -217,7 +238,8 @@
         "nixpkgs": "nixpkgs",
         "nixpkgs-unstable": "nixpkgs-unstable",
         "papertoy": "papertoy",
-        "remote-zettel": "remote-zettel"
+        "remote-zettel": "remote-zettel",
+        "remote-zettel-runtime": "remote-zettel-runtime"
       }
     },
     "rust-analyzer-src": {

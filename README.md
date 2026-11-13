@@ -65,6 +65,41 @@ The first graphical login appears through tuigreet. In niri, use
 `Super+Return` for Ghostty, `Super+D` for fuzzel, `Super+B` for Brave, and
 `Super+Shift+S` to lock the session.
 
+## Remote Zettel updates
+
+Update the application and use the normal system switch:
+
+```console
+nix flake update remote-zettel
+sudo nixos-rebuild switch --flake .#deeley
+```
+
+The usual `rebuild-switch` alias can perform the second step. The separate
+`remote-zettel-runtime` input pins the enrolled worker, supervisor, publisher,
+and upgrade implementation. Routine web updates leave that pin unchanged.
+Change it only with a reviewed policy transition.
+
+The first `task-lifecycle-v1` switch includes structured questions and a fresh
+board. It automatically checks drain, fences the old owners, saves a private
+snapshot, retains the trusted source and dedicated worker login, commissions the
+new policy, and enrolls it after the target generation is selected. It reuses the
+enrolled human and SSH configuration without copying the SSH key. Old task
+requests, runs, and retained review snapshots are available through Work →
+Previous boards. Original stores and workspaces remain retained; old approvals
+and continuations do not carry authority into the new board.
+
+If execution, cleanup, preparation, or publication is unfinished, complete or
+reconcile it before switching again. A supported interrupted handoff resumes
+from durable receipts under `/var/lib/remote-zettel-upgrades/task-lifecycle-v1`.
+Conflicting or incomplete authority state stays fenced rather than being reset.
+First preparation requires a switch, not just `boot` or `dry-activate`.
+
+The previous execution epoch is permanently retired. Shared-service guards also
+prevent an old generation from restarting its web/publisher processes. Recover
+by selecting the enrolled target again; the retained snapshot is not an automatic
+rollback command. Inspect `journalctl -u remote-zettel-work-upgrade` for activation
+failures. Source-level rollout decisions are in Remote Zettel's ADR 013.
+
 ## Sleep and power
 
 Automatic sleep is based on keyboard/mouse inactivity in the graphical session,

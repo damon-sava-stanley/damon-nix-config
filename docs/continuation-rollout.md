@@ -1,5 +1,9 @@
 # Deeley continuation: maintained deployment pin
 
+This is the historical continuation rollout receipt. Current application/runtime
+selection and the task-lifecycle handoff are declared in `hosts/deeley/default.nix`;
+see the repository README for the normal update/switch procedure.
+
 The continuation implementation and rollout records are published in Remote Zettel.
 This deployment pins `0d994f54f7c43fcc7af30bfdd2757affdb3af733` and explicitly sets
 `workPilot.enableContinuation = true`, retaining the existing queueing switch.

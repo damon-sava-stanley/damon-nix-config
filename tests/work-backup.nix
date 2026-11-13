@@ -1,8 +1,13 @@
-{ pkgs, lib, systemConfig }:
+{ pkgs, lib, systemConfig, enabledSystemConfig }:
 let
-  service = systemConfig.systemd.services.remote-zettel-work-backup.serviceConfig;
-  timer = systemConfig.systemd.timers.remote-zettel-work-backup.timerConfig;
+  service = enabledSystemConfig.systemd.services.remote-zettel-work-backup.serviceConfig;
+  timer = enabledSystemConfig.systemd.timers.remote-zettel-work-backup.timerConfig;
 in
+# Production keeps the legacy backup writer disabled; test its implementation
+# only in a separate evaluation, never by enabling it in the deployed system.
+assert !systemConfig.services.remote-zettel-work-backup.enable;
+assert !(systemConfig.systemd.services ? remote-zettel-work-backup);
+assert !(systemConfig.systemd.timers ? remote-zettel-work-backup);
 assert service.User == "root";
 assert service.UMask == "0077";
 assert service.ProtectHome == "tmpfs";
