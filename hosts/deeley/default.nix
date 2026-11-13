@@ -33,6 +33,17 @@ in
   services.fwupd.enable = true;
   services.cloudflare-warp.enable = true;
 
+  # Set the uaccess tag before systemd's seat access rules run.
+  services.udev.packages = [
+    (pkgs.writeTextFile {
+      name = "svalboard-udev-rules";
+      destination = "/lib/udev/rules.d/60-svalboard.rules";
+      text = ''
+        KERNEL=="hidraw*", SUBSYSTEM=="hidraw", ATTRS{idVendor}=="303a", ATTRS{idProduct}=="404[4-9a-d]", MODE="0660", TAG+="uaccess"
+      '';
+    })
+  ];
+
   services.zettel-checkpoint-bridge.enable = true;
   # Legacy Work backups remain administratively fenced after the v2 cutover.
   services.remote-zettel-work-backup.enable = false;

@@ -626,7 +626,7 @@ in
     enable = true;
     settings = {
       default-timeout = 60000; # milliseconds
-      ignore-timeout = false; # Honor application-requested timeouts.
+      ignore-timeout = true; 
     };
   };
 
