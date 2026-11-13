@@ -196,11 +196,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1794576072,
-        "narHash": "sha256-efLWUVk21Qeqm1Rm9XzMx00EPCpQCJvPhJ4J8dy9wBg=",
+        "lastModified": 1794603532,
+        "narHash": "sha256-mdbNj9JGpGpUwB7lE3QjtKUZLQafqNXZGRf3RynWxDQ=",
         "ref": "refs/heads/main",
-        "rev": "da67874ab5592586303ed552085792f690247206",
-        "revCount": 180,
+        "rev": "40f08c3da4c8eb6662e592c4edd6ab3ab2998362",
+        "revCount": 182,
         "type": "git",
         "url": "ssh://git@github.com/damon-sava-stanley/remote-zettel.git"
       },

@@ -74,6 +74,12 @@ nix flake update remote-zettel
 sudo nixos-rebuild switch --flake .#deeley
 ```
 
+Interactive chat includes Bash and filesystem layout guidance for notes and
+sources. Work backlog submission defaults to enabled when both Pi chat and the
+Work pilot are enabled, as they are on this host. These changes arrive through
+the ordinary application update; no systemd override is needed. Set
+`services.remote-zettel.workPilot.enableChatSubmission = false` to opt out.
+
 The usual `rebuild-switch` alias can perform the second step. The separate
 `remote-zettel-runtime` input pins the enrolled worker, supervisor, publisher,
 and upgrade implementation. Routine web updates leave that pin unchanged.
