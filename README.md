@@ -65,6 +65,21 @@ The first graphical login appears through tuigreet. In niri, use
 `Super+Return` for Ghostty, `Super+D` for fuzzel, `Super+B` for Brave, and
 `Super+Shift+S` to lock the session.
 
+## Even Hub CLI
+
+Home Manager installs Even Hub CLI 0.2.0 as `evenhub` and `eh`, with shell
+completions. Apply it with `sudo nixos-rebuild switch --flake .#deeley`, then run
+`evenhub login` interactively and `evenhub init` in an app project.
+
+The local package includes the upstream JavaScript and WebAssembly packer; no
+global npm installation is needed. Its proprietary license is allowed explicitly
+in the host configuration. To build the package separately:
+
+```console
+NIXPKGS_ALLOW_UNFREE=1 nix build --impure .#evenhub-cli
+./result/bin/evenhub --help
+```
+
 ## Remote Zettel updates
 
 Update the application and use the normal system switch:

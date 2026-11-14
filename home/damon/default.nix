@@ -50,6 +50,7 @@ let
   };
 
   flyingToasters = pkgs.callPackage ./packages/flying-toasters.nix { };
+  evenhubCli = pkgs.callPackage ./packages/evenhub-cli.nix { };
   niriFlyingToasters = pkgs.writeShellApplication {
     name = "niri-flying-toasters";
     runtimeInputs = [
@@ -381,6 +382,7 @@ in
       pkgs.marksman
       dictate
       dictateControl
+      evenhubCli
       niriToggleMonitors
       niriFlyingToasters
       totemBattery
@@ -626,7 +628,7 @@ in
     enable = true;
     settings = {
       default-timeout = 60000; # milliseconds
-      ignore-timeout = true; 
+      ignore-timeout = true;
     };
   };
 

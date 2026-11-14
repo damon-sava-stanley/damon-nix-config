@@ -61,7 +61,10 @@
       };
     in
     {
-      packages.${system}.cloudscape-renderer = cloudscapeRenderer;
+      packages.${system} = {
+        cloudscape-renderer = cloudscapeRenderer;
+        evenhub-cli = pkgs.callPackage ./home/damon/packages/evenhub-cli.nix { };
+      };
 
       nixosConfigurations.deeley = nixpkgs.lib.nixosSystem {
         inherit system;
@@ -78,6 +81,7 @@
                 "brave"
                 "cloudflare-warp"
                 "dropbox"
+                "evenhub-cli"
                 "firefox-bin"
                 "firefox-bin-unwrapped"
                 "steam"
@@ -136,9 +140,10 @@
           inherit pkgs;
           lib = nixpkgs.lib;
           systemConfig = self.nixosConfigurations.deeley.config;
-          enabledSystemConfig = (self.nixosConfigurations.deeley.extendModules {
-            modules = [ { services.remote-zettel-work-backup.enable = nixpkgs.lib.mkForce true; } ];
-          }).config;
+          enabledSystemConfig =
+            (self.nixosConfigurations.deeley.extendModules {
+              modules = [ { services.remote-zettel-work-backup.enable = nixpkgs.lib.mkForce true; } ];
+            }).config;
         };
         work-backup-vm = import ./tests/work-backup-vm.nix {
           inherit pkgs;
