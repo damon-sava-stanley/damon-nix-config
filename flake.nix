@@ -10,7 +10,7 @@
     };
     # Execution/publisher policy is enrolled independently of web application updates.
     remote-zettel-runtime = {
-      url = "git+ssh://git@github.com/damon-sava-stanley/remote-zettel.git?rev=e993358520eda0af303c328563e7982e993ef233";
+      url = "git+ssh://git@github.com/damon-sava-stanley/remote-zettel.git?rev=c583003a20c795557a6edeac4b530aca7bbb08ed";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     dictate-src = {

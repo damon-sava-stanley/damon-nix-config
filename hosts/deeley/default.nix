@@ -5,10 +5,16 @@ let
   # Explicit context retains an existing store object without impure storePath
   # lookup. These are enrolled deployment artifacts, not bootstrap downloads.
   retain = path: builtins.appendContext path { "${path}" = { path = true; }; };
-  previousWriters = rec {
+  publicationV2Writers = rec {
     type = "derivation";
     name = "epoch-publication-v2-writer-definitions";
     outPath = retain "/nix/store/c75zkanwrvzflbwrns8dsski05m94grn-epoch-publication-v2-writer-definitions";
+    outputs = [ "out" ]; outputName = "out"; out = publicationV2Writers;
+  };
+  previousWriters = rec {
+    type = "derivation";
+    name = "epoch-task-lifecycle-v1-writer-definitions";
+    outPath = retain "/nix/store/v2drdvm9w6rksnh4nwifsyp8yqclg4wr-epoch-task-lifecycle-v1-writer-definitions";
     outputs = [ "out" ]; outputName = "out"; out = previousWriters;
   };
   writingChecks = import (remote-zettel-runtime + /nix/work-writing-checks.nix) {
@@ -96,19 +102,21 @@ in
     enablePiChat = true;
     noteCheckpointSocket = "/run/zettel-checkpoint/control.sock";
     enableDesktopCapture = true;
-    # Fresh question-enabled epoch; the switch performs the declared v2 handoff.
+    # Fresh agent-approval epoch; the switch drains and retires the previous board.
     workPilot = {
       enable = true;
       enableExecution = true;
       enableContinuation = true;
       enableStructuredInput = true;
       enableChatControl = true;
+      chatControlAgentId = "main-chat";
+      retiredEpochs.publication-v2 = publicationV2Writers;
       package = remote-zettel-runtime.packages.${pkgs.stdenv.hostPlatform.system}.default;
       runtimeSource = remote-zettel-runtime.outPath;
-      epoch = "task-lifecycle-v1";
+      epoch = "agent-approval-v1";
       repository = "damon-sava-stanley/ssdamon-stories";
-      coordinatorStatePath = "/var/lib/remote-zettel/work/task-lifecycle-v1/state.sqlite";
-      documentsRoot = "/home/damon/Dropbox/agent-workspace-task-lifecycle-v1";
+      coordinatorStatePath = "/var/lib/remote-zettel/work/agent-approval-v1/state.sqlite";
+      documentsRoot = "/home/damon/Dropbox/agent-workspace-agent-approval-v1";
       baseCommit = "3689bb4c647704ca4c2d658b3e0e8a839eb6a116";
       checkCommand = writingChecks.worktree;
       candidateCheckCommand = writingChecks.candidate;
@@ -118,18 +126,18 @@ in
       enable = true;
       repositoryId = "ssdamon-stories";
       previous = {
-        epoch = "publication-v2";
-        root = "/var/lib/remote-zettel-publication-v2";
-        hostRoot = "/var/lib/remote-zettel-work-epoch-publication-v2-namespace-host";
-        executorRoot = "/var/lib/remote-zettel-work-epoch-publication-v2-namespace-executor";
-        sourceRepository = "/var/lib/remote-zettel-work-epoch-publication-v2-namespace-source";
-        sourceStateDirectory = "/var/lib/remote-zettel-publication-v2/source-state";
-        documentsRoot = "/home/damon/Dropbox/agent-workspace-publication-v2";
-        coordinatorStatePath = "/var/lib/remote-zettel/work/publication-v2/state.sqlite";
-        publisherStorePath = "/var/lib/remote-zettel-publication-v2/publisher/state.sqlite";
-        ingestionDirectory = "/var/lib/remote-zettel-publication-v2/ingestion";
-        approvalConfigurationFile = "/var/lib/remote-zettel-publication-v2/config/approval.json";
-        publisherConfigurationFile = "/var/lib/remote-zettel-publication-v2/config/operator.json";
+        epoch = "task-lifecycle-v1";
+        root = "/var/lib/remote-zettel-task-lifecycle-v1";
+        hostRoot = "/var/lib/remote-zettel-work-epoch-task-lifecycle-v1-namespace-host";
+        executorRoot = "/var/lib/remote-zettel-work-epoch-task-lifecycle-v1-namespace-executor";
+        sourceRepository = "/var/lib/remote-zettel-work-epoch-task-lifecycle-v1-namespace-source";
+        sourceStateDirectory = "/var/lib/remote-zettel-task-lifecycle-v1/source-state";
+        documentsRoot = "/home/damon/Dropbox/agent-workspace-task-lifecycle-v1";
+        coordinatorStatePath = "/var/lib/remote-zettel/work/task-lifecycle-v1/state.sqlite";
+        publisherStorePath = "/var/lib/remote-zettel-task-lifecycle-v1/publisher/state.sqlite";
+        ingestionDirectory = "/var/lib/remote-zettel-task-lifecycle-v1/ingestion";
+        approvalConfigurationFile = "/var/lib/remote-zettel-task-lifecycle-v1/config/approval.json";
+        publisherConfigurationFile = "/var/lib/remote-zettel-task-lifecycle-v1/config/operator.json";
         writerDefinitions = previousWriters;
       };
     };
