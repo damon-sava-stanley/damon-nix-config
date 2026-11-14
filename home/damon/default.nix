@@ -426,6 +426,12 @@ in
       }
     ];
   };
+  programs.yazi = {
+    enable = true;
+    enableFishIntegration = true;
+    shellWrapperName = "y";
+  };
+
   programs.starship = {
     enable = true;
     enableFishIntegration = true;
