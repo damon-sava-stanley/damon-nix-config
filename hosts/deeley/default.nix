@@ -102,6 +102,7 @@ in
       enableExecution = true;
       enableContinuation = true;
       enableStructuredInput = true;
+      enableChatControl = true;
       package = remote-zettel-runtime.packages.${pkgs.stdenv.hostPlatform.system}.default;
       runtimeSource = remote-zettel-runtime.outPath;
       epoch = "task-lifecycle-v1";

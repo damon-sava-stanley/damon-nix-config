@@ -136,11 +136,11 @@
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1794165970,
-        "narHash": "sha256-XuAV2cUwaod3Bt4XFVqiXz3v1w2ex16W6Sv4S7EWres=",
+        "lastModified": 1794552581,
+        "narHash": "sha256-qXFIqA6FCcx7XeDzw0ZNlkDT9UiCzrNDwK8RuU8RcHM=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "ac588ef1c914865dad517b337ea0eb9694a4021c",
+        "rev": "f1e5c356f35d07e7b71a6b5e6c9338e0b029e0c0",
         "type": "github"
       },
       "original": {
@@ -196,11 +196,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1794603532,
-        "narHash": "sha256-mdbNj9JGpGpUwB7lE3QjtKUZLQafqNXZGRf3RynWxDQ=",
+        "lastModified": 1794618225,
+        "narHash": "sha256-H6Qcev1/GPuMW1iCSwzOUMesDFKk6iFf9N49MAwCaMg=",
         "ref": "refs/heads/main",
-        "rev": "40f08c3da4c8eb6662e592c4edd6ab3ab2998362",
-        "revCount": 182,
+        "rev": "0ef8cecef129cde02420655e392dbb3df845d291",
+        "revCount": 190,
         "type": "git",
         "url": "ssh://git@github.com/damon-sava-stanley/remote-zettel.git"
       },
