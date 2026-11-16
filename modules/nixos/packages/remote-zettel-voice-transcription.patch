@@ -1,0 +1,14 @@
+diff --git a/src/even/voice.ts b/src/even/voice.ts
+index 405c69d..90ffaa0 100644
+--- a/src/even/voice.ts
++++ b/src/even/voice.ts
+@@ -36,0 +37 @@ export class EvenVoice {
++  private transcribing = false;
+@@ -284,0 +286,3 @@ export class EvenVoice {
++    // Upload and polling share the same draft. A poll before upload admission
++    // would interpret its 404 as an interruption and stop future polling.
++    if (this.transcribing) return;
+@@ -286,0 +291 @@ export class EvenVoice {
++    this.transcribing = true;
+@@ -311,0 +317 @@ export class EvenVoice {
++    finally { this.transcribing = false; }

@@ -1,0 +1,22 @@
+diff --git a/package.json b/package.json
+index cf5751e..8a99b9e 100644
+--- a/package.json
++++ b/package.json
+@@ -4,7 +4,7 @@
+   "private": true,
+   "type": "module",
+   "scripts": {
+-    "build": "tsc -p tsconfig.json && esbuild src/browser/note-editor.ts --bundle --format=esm --target=es2022 --minify --outfile=dist/src/browser/note-editor.js && esbuild src/browser/even.ts --bundle --format=esm --target=es2022 --minify --outfile=dist/src/browser/even.js && mkdir -p dist/static && cp -R static/. dist/static/",
++    "build": "tsc -p tsconfig.build.json && esbuild src/browser/note-editor.ts --bundle --format=esm --target=es2022 --minify --outfile=dist/src/browser/note-editor.js && esbuild src/browser/even.ts --bundle --format=esm --target=es2022 --minify --outfile=dist/src/browser/even.js && mkdir -p dist/static && cp -R static/. dist/static/",
+     "check": "tsc -p tsconfig.json --noEmit",
+     "work": "node --experimental-transform-types src/cli/work.ts",
+     "dev": "npm run build && ENABLE_SIMULATED_UTTERANCES=true node dist/src/server/main.js",
+diff --git a/tsconfig.build.json b/tsconfig.build.json
+new file mode 100644
+--- /dev/null
++++ b/tsconfig.build.json
+@@ -0,0 +1,4 @@
++{
++  "extends": "./tsconfig.json",
++  "include": ["src/**/*.ts", "tests/fixtures/**/*.ts", "tests/*-vm*.ts"]
++}

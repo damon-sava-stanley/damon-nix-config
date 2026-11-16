@@ -87,10 +87,33 @@ in
     remote-zettel-publisher.gid = 3205;
   };
 
+  # Retire only the exact runtime Writing trial override when the persistent
+  # service is activated. Leave unrelated Work policy drop-ins in place.
+  system.activationScripts.remote-zettel-writing-trial-cleanup = {
+    deps = [ "etc" ];
+    text = ''
+      writing_trial=/run/systemd/system/remote-zettel.service.d/zz-even-writing.conf
+      if [ -e "$writing_trial" ] || [ -L "$writing_trial" ]; then
+        if [ -L "$writing_trial" ] || [ ! -f "$writing_trial" ]; then
+          echo "Writing trial override is not the prepared regular file" >&2
+          exit 1
+        fi
+        writing_trial_hash="$(${pkgs.coreutils}/bin/sha256sum "$writing_trial")"
+        if [ "''${writing_trial_hash%% *}" != "888532bcb266c19973e29042cc3f0bf8ac77dafe02856fe65c55bfaeae66919f" ]; then
+          echo "Writing trial override changed; inspect before activating" >&2
+          exit 1
+        fi
+        ${pkgs.coreutils}/bin/rm -- "$writing_trial"
+      fi
+    '';
+  };
+
   services.remote-zettel = {
     enable = true;
-    # Web code follows the ordinary flake input; enrolled runtime remains pinned.
-    package = remote-zettel.packages.${pkgs.stdenv.hostPlatform.system}.default;
+    # The web app includes Even features; the enrolled Work runtime stays pinned.
+    package = import ../../modules/nixos/packages/remote-zettel-even.nix {
+      package = remote-zettel.packages.${pkgs.stdenv.hostPlatform.system}.default;
+    };
     publisherOutcomeService.package = remote-zettel-runtime.packages.${pkgs.stdenv.hostPlatform.system}.default;
     dataRoot = "/home/damon/Dropbox/000_zettelkasten";
     dataOwner = "damon";
@@ -98,6 +121,12 @@ in
       teamDomain = "late-thunder-9219.cloudflareaccess.com";
       audience = "68d97452fec8a3717afe57ce54949614ed41ea5f5cad9c52b68c988404d255a9";
       publicHostname = "zettel.ss-damon.com";
+    };
+    # Reuse the existing private grant directory and enrolled browser owner.
+    # Individual read/feature/Writing grants still require browser approval.
+    evenDeviceReadAccess = {
+      enable = true;
+      ownerSubjects = [ "9d599c1a-97f1-5159-a7ac-785ff4539de9" ];
     };
     enablePiChat = true;
     noteCheckpointSocket = "/run/zettel-checkpoint/control.sock";

@@ -1,0 +1,239 @@
+diff --git a/src/server/app.ts b/src/server/app.ts
+index 9332e68..f52f699 100644
+--- a/src/server/app.ts
++++ b/src/server/app.ts
+@@ -47,7 +47,7 @@ import {
+ } from "./transcription.ts";
+ import { JsonlDiagnostics, type ConsoleDiagnostics } from "./diagnostics.ts";
+ import { AccessJwtVerifier, HumanApprovalAuthority, type OriginAccessConfig } from "./origin-access.ts";
+-import { EvenDeviceAccess, EvenDeviceError, evenDeviceReadPath } from "./even-device-access.ts";
++import { EvenDeviceAccess, EvenDeviceError, evenDeviceReadPath, evenDeviceFeaturePath } from "./even-device-access.ts";
+ import { evenDevicePage } from "./even-device-page.ts";
+ import type { WorkApprovalOptions } from './work-approvals.ts';
+ import { workHistory } from './work-history.ts';
+@@ -379,21 +379,23 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
+         return;
+       }
+       let deviceRead = false;
++      let deviceFeatures = false;
+       if (new URL(request.url ?? '/', 'http://localhost').pathname.startsWith('/api/even-device/')) {
+         if (!deviceAccess) { json(response, 404, { error: 'Device access disabled' }); return; }
+         // Only these bearer-authenticated routes use CORS. Cookies and Access
+         // assertions are never accepted as device credentials.
+         response.setHeader('access-control-allow-origin', '*');
+-        response.setHeader('access-control-allow-methods', 'GET, POST, OPTIONS');
++        response.setHeader('access-control-allow-methods', 'GET, POST, DELETE, OPTIONS');
+         response.setHeader('access-control-allow-headers', 'authorization, content-type');
+         response.setHeader('cache-control', 'private, no-store');
+         const deviceUrl = new URL(request.url ?? '/', 'http://localhost');
+         const pairing = deviceUrl.pathname === '/api/even-device/pair' && !deviceUrl.search;
+-        const target = evenDeviceReadPath(request.method ?? '', request.url ?? '');
++        const featureTarget = evenDeviceFeaturePath(request.method ?? '', request.url ?? '');
++        const target = evenDeviceReadPath(request.method ?? '', request.url ?? '') ?? featureTarget;
+         if (request.method === 'OPTIONS') {
+           const requested = request.headers['access-control-request-method'];
+           if ((pairing && (requested === 'GET' || requested === 'POST')) ||
+-            (typeof requested === 'string' && evenDeviceReadPath(requested, request.url ?? ''))) {
++            (typeof requested === 'string' && (evenDeviceReadPath(requested, request.url ?? '') || evenDeviceFeaturePath(requested, request.url ?? '')))) {
+             response.writeHead(204); response.end();
+           } else json(response, 404, { error: 'Device route unavailable' });
+           return;
+@@ -404,15 +406,17 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
+           let body: unknown;
+           try { body = await readJson(request, 256); }
+           catch (error) { if (error instanceof SyntaxError) throw new EvenDeviceError(400, 'Expected JSON'); throw error; }
+-          if (!body || typeof body !== 'object' || Array.isArray(body) || Object.keys(body).some(k => k !== 'label')) throw new EvenDeviceError(400, 'Expected device label');
+-          json(response, 202, await deviceAccess.start(token, (body as { label?: unknown }).label)); return;
++          if (!body || typeof body !== 'object' || Array.isArray(body) || Object.keys(body).some(k => !['label', 'scope'].includes(k))) throw new EvenDeviceError(400, 'Expected device label');
++          json(response, 202, await deviceAccess.start(token, (body as { label?: unknown }).label, (body as { scope?: unknown }).scope)); return;
+         }
+         if (pairing && request.method === 'GET') { json(response, 200, await deviceAccess.status(token)); return; }
+         if (!target) { json(response, 404, { error: 'Device route unavailable' }); return; }
+-        await deviceAccess.authenticate(token);
++        const grant = await deviceAccess.authenticate(token);
++        if (featureTarget && grant.scope !== "features") throw new EvenDeviceError(403, "Feature authorization required");
++        deviceFeatures = !!featureTarget;
+         request.url = target; deviceRead = true;
+       }
+-      if ((!["GET", "HEAD", "OPTIONS"].includes(request.method ?? "") ||
++      if (!deviceRead && (!["GET", "HEAD", "OPTIONS"].includes(request.method ?? "") ||
+           /^\/api\/work\/(?:repositories\/[^/]+\/)?(approvals(?:\/.*)?|history(?:\/.*)?|events|deployments|runs\/[^/]+\/candidate-(review|content))$/.test(new URL(request.url ?? '/', 'http://localhost').pathname)) &&
+           request.headers.origin !== undefined && !allowedOrigins.has(request.headers.origin)) {
+         json(response, 403, { error: "Unrecognized Origin" });
+@@ -441,7 +445,7 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
+           try { body = await readJson(request, 256); }
+           catch (error) { if (error instanceof SyntaxError) throw new EvenDeviceError(400, 'Expected JSON'); throw error; }
+           if (!body || typeof body !== 'object' || Array.isArray(body)) { json(response, 400, { error: 'Expected decision' }); return; }
+-          if (deviceAdmin.pathname.endsWith('/approve')) json(response, 200, await deviceAccess.approve((body as { code?: unknown }).code));
++          if (deviceAdmin.pathname.endsWith('/approve')) json(response, 200, await deviceAccess.approve((body as { code?: unknown }).code, (body as { scope?: unknown }).scope));
+           else { await deviceAccess.revoke((body as { id?: unknown }).id); json(response, 200, { revoked: true }); }
+           return;
+         }
+@@ -491,6 +495,7 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
+         json(response, 200, { deployments: statuses }); return;
+       }
+       await route(request, response, {
++        deviceFeatures,
+         deploymentStatusEnabled: deploymentStatusEnrollments.some(e => !scopedConfiguration || scopedConfiguration.work.repositories.includes(e.repository)),
+         controller,
+         evenActions,
+@@ -598,6 +603,7 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
+ }
+
+ type Dependencies = {
++  deviceFeatures?: boolean;
+   deploymentStatusEnabled?: boolean;
+   work?: TaskService;
+   workRegistry?: WorkRepositoryRegistry;
+@@ -733,7 +739,7 @@ async function route(
+   const workAction = /^\/api\/work\/tasks\/([^/]+)\/(queue|cancel|request-changes|answer|cancel-task|retry-cleanup)$/.exec(url.pathname);
+   if (workAction && request.method === "POST") {
+     if (!dependencies.workCoordinator) { json(response, 404, { error: "Work is not configured" }); return; }
+-    if (!request.headers.origin) { json(response, 403, { error: "Origin required" }); return; }
++    if (!request.headers.origin && !dependencies.deviceFeatures) { json(response, 403, { error: "Origin required" }); return; }
+     let body: unknown;
+     try { body = await readJson(request, 4096); }
+     catch (error) { if (error instanceof SyntaxError) throw new RequestError(400, "Invalid JSON"); throw error; }
+@@ -757,7 +763,7 @@ async function route(
+     }
+     if ((request.method === "POST" && collection) || (request.method === "PUT" && !collection)) {
+       // Global routing already validates supplied Origins. Work writes also require one.
+-      if (!request.headers.origin) { json(response, 403, { error: "Origin required" }); return; }
++      if (!request.headers.origin && !dependencies.deviceFeatures) { json(response, 403, { error: "Origin required" }); return; }
+       let body: unknown;
+       try { body = await readJson(request, 280 * 1024); }
+       catch (error) { if (error instanceof SyntaxError) throw new RequestError(400, "Invalid JSON"); throw error; }
+diff --git a/src/server/even-device-access.ts b/src/server/even-device-access.ts
+index a894640..493f661 100644
+--- a/src/server/even-device-access.ts
++++ b/src/server/even-device-access.ts
+@@ -7,14 +7,15 @@ const pairingMs = 10 * 60_000;
+ const credentialMs = 30 * 24 * 60 * 60_000;
+ const tokenPattern = /^[A-Za-z0-9_-]{43}$/;
+ const digestPattern = /^[a-f0-9]{64}$/;
+-type Device = { version: 1; id: string; label: string; approvedAt: number; expiresAt: number };
+-type Pending = { digest: string; code: string; label: string; expiresAt: number; approved: boolean };
++export type DeviceScope = "read" | "features";
++type Device = { version: 1; id: string; label: string; approvedAt: number; expiresAt: number; scope?: DeviceScope };
++type Pending = { digest: string; code: string; label: string; expiresAt: number; approved: boolean; scope: DeviceScope };
+
+ export class EvenDeviceError extends Error {
+   constructor(readonly status: number, message: string) { super(message); }
+ }
+
+-/** Personal read-only experiment. Disk holds token digests, never bearer tokens.
++/** Personal device grants. Existing records remain read-only. Disk holds token digests, never bearer tokens.
+  * Pending requests deliberately expire on restart. Active grants survive it.
+  */
+ export class EvenDeviceAccess {
+@@ -41,38 +42,41 @@ export class EvenDeviceAccess {
+     this.queue = result.catch(() => {});
+     return result;
+   }
+-  async start(token: unknown, label: unknown): Promise<{ code: string; expiresAt: number }> {
++  async start(token: unknown, label: unknown, scope: unknown = "read"): Promise<{ code: string; expiresAt: number }> {
+     const digest = this.digest(token);
++    if (scope !== "read" && scope !== "features") throw new EvenDeviceError(400, "Invalid device scope");
+     if (typeof label !== "string" || !/^[a-zA-Z0-9 ._-]{1,48}$/.test(label)) throw new EvenDeviceError(400, "Use a short device label");
+     return this.serial(async () => {
+       this.prune();
+       const existing = this.pending.get(digest);
++      if (existing && existing.scope !== scope) throw new EvenDeviceError(409, "Pairing scope cannot change");
+       if (existing) return { code: existing.code, expiresAt: existing.expiresAt };
+       if (await this.read(digest)) throw new EvenDeviceError(409, "Device already enrolled");
+       if (this.starts.length >= 10 || this.pending.size >= 8) throw new EvenDeviceError(429, "Pairing busy; retry later");
+       let code: string;
+       do { code = randomBytes(5).toString("hex").toUpperCase(); }
+       while ([...this.pending.values()].some(p => p.code === code));
+-      const pending: Pending = { digest, code, label, expiresAt: this.now() + pairingMs, approved: false };
++      const pending: Pending = { digest, code, label, expiresAt: this.now() + pairingMs, approved: false, scope };
+       this.pending.set(digest, pending); this.starts.push(this.now());
+       return { code, expiresAt: pending.expiresAt };
+     });
+   }
+-  async status(token: unknown): Promise<{ status: "pending" | "approved" | "expired"; expiresAt?: number }> {
++  async status(token: unknown): Promise<{ status: "pending" | "approved" | "expired"; expiresAt?: number; scope?: DeviceScope }> {
+     const digest = this.digest(token);
+     const device = await this.read(digest);
+-    if (device && device.expiresAt > this.now()) return { status: "approved", expiresAt: device.expiresAt };
++    if (device && device.expiresAt > this.now()) return { status: "approved", expiresAt: device.expiresAt, ...(device.scope === "features" ? { scope: "features" as const } : {}) };
+     this.prune();
+     const pending = this.pending.get(digest);
+     return { status: pending && !pending.approved ? "pending" : "expired" };
+   }
+-  async approve(code: unknown): Promise<Device> {
++  async approve(code: unknown, scope: unknown = "read"): Promise<Device> {
+     return this.serial(async () => {
+       this.prune();
+       const pending = typeof code === "string" && [...this.pending.values()].find(p => p.code === code && !p.approved);
+       if (!pending) throw new EvenDeviceError(404, "Pairing code missing or expired");
++      if (scope !== pending.scope) throw new EvenDeviceError(400, "Select the requested device scope before authorizing");
+       if ((await this.list()).length >= 16) throw new EvenDeviceError(409, "Revoke an old device first");
+-      const device: Device = { version: 1, id: pending.digest, label: pending.label, approvedAt: this.now(), expiresAt: this.now() + credentialMs };
++      const device: Device = { version: 1, id: pending.digest, label: pending.label, approvedAt: this.now(), expiresAt: this.now() + credentialMs, ...(pending.scope === "features" ? { scope: "features" as const } : {}) };
+       const path = join(this.directory, `${device.id}.json`);
+       // Write and sync before making the grant visible with a final hard link.
+       const temporary = join(this.directory, `pending-${randomBytes(16).toString("hex")}`);
+@@ -124,7 +128,7 @@ export class EvenDeviceAccess {
+       if (!value || typeof value !== "object") throw new Error("Invalid device record");
+       const d = value as Device;
+       if (d.version !== 1 || d.id !== id || typeof d.label !== "string" || !/^[a-zA-Z0-9 ._-]{1,48}$/.test(d.label)
+-        || !Number.isFinite(d.approvedAt) || !Number.isFinite(d.expiresAt) || d.expiresAt <= d.approvedAt) throw new Error("Invalid device record");
++        || !Number.isFinite(d.approvedAt) || !Number.isFinite(d.expiresAt) || d.expiresAt <= d.approvedAt || (d.scope !== undefined && d.scope !== "read" && d.scope !== "features")) throw new Error("Invalid device record");
+       return d;
+     } finally { await file.close(); }
+   }
+@@ -145,3 +149,18 @@ export function evenDeviceReadPath(method: string, rawUrl: string): string | und
+     } catch { /* Invalid encoding has no capability. */ }
+   }
+ }
++
++/** Exact feature capability. No Work approvals, task creation, queue, cancellation,
++ * repository administration, publication, or original API bypass is exposed. */
++export function evenDeviceFeaturePath(method: string, rawUrl: string): string | undefined {
++  const prefix = '/api/even-device/app';
++  if (!rawUrl.startsWith(prefix + '/')) return;
++  const target = rawUrl.slice(prefix.length);
++  if (evenDeviceReadPath(method, '/api/even-device/read' + target)) return target;
++  if (target.includes('?') || target.includes('#')) return;
++  if (method === 'GET' && target === '/api/work/tasks') return target;
++  if (method === 'POST' && target === '/api/even/actions') return target;
++  if (method === 'GET' && /^\/api\/even\/actions\/[a-zA-Z0-9_-]{1,100}$/.test(target)) return target;
++  if (['GET', 'POST', 'DELETE'].includes(method) && /^\/api\/even\/transcriptions\/[a-zA-Z0-9_-]{1,100}$/.test(target)) return target;
++  if (method === 'POST' && /^\/api\/work\/tasks\/[a-zA-Z0-9_-]{1,100}\/(answer|request-changes)$/.test(target)) return target;
++}
+diff --git a/src/server/even-device-page.ts b/src/server/even-device-page.ts
+index dc7ffbb..f5975a9 100644
+--- a/src/server/even-device-page.ts
++++ b/src/server/even-device-page.ts
+@@ -3,8 +3,8 @@ export const evenDevicePage = `<!doctype html>
+ <title>Even device access</title>
+ <style>body{font:16px system-ui;max-width:40rem;margin:2rem auto;padding:1rem}button,input{font:inherit;padding:.6rem;margin:.4rem}li{margin:1rem 0}#status{white-space:pre-wrap}</style>
+ <h1>Even device access</h1>
+-<p>Enter the code currently shown by your Even app. Authorization grants note and state reads for 30 days. You can revoke it here.</p>
+-<form id="pair"><label>Pairing code <input id="code" maxlength="10" pattern="[A-Fa-f0-9]{10}" autocomplete="off" required></label><button>Authorize read access</button></form>
++<p>Enter the code currently shown by your Even app. Authorization lasts 30 days. Read access grants note/state reads. Feature access additionally grants transcription, note capture, chat and Work answers/feedback; it grants no Work approvals or publication authority. You can revoke it here.</p>
++<form id="pair"><label>Pairing code <input id="code" maxlength="10" pattern="[A-Fa-f0-9]{10}" autocomplete="off" required></label><label>Access <select id="scope"><option value="read">Read access</option><option value="features">Features: voice, chat, Work responses</option></select></label><button>Authorize read access / selected features</button></form>
+ <p id="status" role="status"></p>
+ <h2>Authorized devices</h2><button id="refresh">Refresh devices</button><ul id="devices"></ul>
+ <script>
+@@ -24,7 +24,7 @@ async function refresh() {
+   for (const device of value.devices) {
+     const item = document.createElement('li');
+     const text = document.createElement('span');
+-    text.textContent = device.label + ' · expires ' + new Date(device.expiresAt).toLocaleString();
++    text.textContent = device.label + (device.scope === 'features' ? ' · voice/chat/Work responses' : ' · read only') + ' · expires ' + new Date(device.expiresAt).toLocaleString();
+     const revoke = document.createElement('button'); revoke.textContent = 'Revoke';
+     revoke.addEventListener('click', () => run(async () => { await api('/revoke', { id: device.id }); await refresh(); status.textContent = 'Device revoked.'; }));
+     item.append(text, revoke); list.append(item);
+@@ -36,8 +36,8 @@ async function run(action) {
+ document.querySelector('#pair').addEventListener('submit', event => {
+   event.preventDefault();
+   run(async () => {
+-    await api('/approve', { code: document.querySelector('#code').value.trim().toUpperCase() });
+-    document.querySelector('#code').value = ''; status.textContent = 'Read access authorized. Return to the Even app.';
++    await api('/approve', { code: document.querySelector('#code').value.trim().toUpperCase(), scope: document.querySelector('#scope').value });
++    document.querySelector('#code').value = ''; status.textContent = 'Selected access authorized. Return to the Even app.';
+     await refresh();
+   });
+ });

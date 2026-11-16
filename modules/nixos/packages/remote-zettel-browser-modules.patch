@@ -1,0 +1,23 @@
+diff --git a/src/server/app.ts b/src/server/app.ts
+index f52f699..24c717d 100644
+--- a/src/server/app.ts
++++ b/src/server/app.ts
+@@ -1036,7 +1036,8 @@ async function route(
+   if (
+     request.method === "GET" &&
+     (assetPath === "/shared/audio-config.js" ||
+-      assetPath === "/shared/current-content.js" || assetPath === "/shared/work-candidate.js" || assetPath === "/shared/work-publication.js")
++      assetPath === "/shared/current-content.js" || assetPath === "/shared/work-candidate.js" || assetPath === "/shared/work-publication.js" ||
++      assetPath === "/shared/work.js" || assetPath === "/shared/work-deployment.js")
+   ) {
+     response.writeHead(200, {
+       "content-type": "text/javascript; charset=utf-8",
+@@ -1111,6 +1112,8 @@ async function browserAssetVersion(
+       .map((name) => join(browserRoot, `${name}.js`)),
+     join(sharedRoot, "audio-config.js"),
+     join(sharedRoot, "current-content.js"),
++    join(sharedRoot, "work.js"),
++    join(sharedRoot, "work-deployment.js"),
+     join(sharedRoot, "work-candidate.js"),
+     join(sharedRoot, "work-publication.js"),
+     markedAsset,

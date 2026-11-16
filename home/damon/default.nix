@@ -366,6 +366,7 @@ in
       # Haskell toolchain; Cabal manages project dependencies.
       pkgs.cabal-install
       pkgs.ardour
+      pkgs.blender
       pkgs.brightnessctl
       pkgs.bottom
       pkgs.bubblewrap
@@ -430,6 +431,18 @@ in
     enable = true;
     enableFishIntegration = true;
     shellWrapperName = "y";
+    plugins.mount = pkgs.yaziPlugins.mount;
+    extraPackages = [
+      pkgs.udisks2
+      pkgs.util-linux
+    ];
+    keymap.mgr.prepend_keymap = [
+      {
+        on = "M";
+        run = "plugin mount";
+        desc = "Manage mounts";
+      }
+    ];
   };
 
   programs.starship = {

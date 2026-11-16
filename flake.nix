@@ -166,11 +166,19 @@
           lib = nixpkgs.lib;
           systemConfig = self.nixosConfigurations.deeley.config;
         };
+        even-device = import ./tests/even-device.nix {
+          inherit pkgs;
+          lib = nixpkgs.lib;
+          systemConfig = self.nixosConfigurations.deeley.config;
+          expectedRevision = remote-zettel.rev;
+        };
         work-pilot = import ./tests/work-pilot.nix {
           inherit pkgs;
           lib = nixpkgs.lib;
           systemConfig = self.nixosConfigurations.deeley.config;
-          webPackage = remote-zettel.packages.${system}.default;
+          webPackage = import ./modules/nixos/packages/remote-zettel-even.nix {
+            package = remote-zettel.packages.${system}.default;
+          };
           runtimePackage = remote-zettel-runtime.packages.${system}.default;
           runtimeSource = remote-zettel-runtime.outPath;
         };
