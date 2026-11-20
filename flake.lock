@@ -196,11 +196,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1795061109,
-        "narHash": "sha256-NDd52VkXPqdLX5vdpVMbHylalfBot31/vdq5+u3q0B0=",
+        "lastModified": 946684800,
+        "narHash": "sha256-3sD3DfLaUYU7MC0YfWscJ507oT8+rZzvRGF9etNSJow=",
         "ref": "refs/heads/main",
-        "rev": "ba35e5799dcfe1cc2914ba6e992d62ec9cdda627",
-        "revCount": 209,
+        "rev": "c6edadfc46c1ca079de86655c82190e7c7e41bc6",
+        "revCount": 211,
         "type": "git",
         "url": "ssh://git@github.com/damon-sava-stanley/remote-zettel.git"
       },
@@ -216,13 +216,13 @@
         ]
       },
       "locked": {
-        "lastModified": 1,
-        "narHash": "sha256-9ZAd7Hth+W7s8LH3VI3QYvl9eaw4bTNwnTz4B6/ZT7U=",
-        "path": "/nix/store/a7wjp19i03dhwhnlfd5h3kmzm18xlgfi-remote-zettel-host-policy-source",
+        "lastModified": 0,
+        "narHash": "sha256-sFJLGuPBa6NVZ36dChABT1vRiRkPBz10vL61c7XByF0=",
+        "path": "/nix/store/agalarqc5d5idjwg8q81sil1wnxx86jg-source",
         "type": "path"
       },
       "original": {
-        "path": "/nix/store/a7wjp19i03dhwhnlfd5h3kmzm18xlgfi-remote-zettel-host-policy-source",
+        "path": "/nix/store/agalarqc5d5idjwg8q81sil1wnxx86jg-source",
         "type": "path"
       }
     },
@@ -233,13 +233,13 @@
         ]
       },
       "locked": {
-        "lastModified": 1,
-        "narHash": "sha256-9ZAd7Hth+W7s8LH3VI3QYvl9eaw4bTNwnTz4B6/ZT7U=",
-        "path": "/nix/store/a7wjp19i03dhwhnlfd5h3kmzm18xlgfi-remote-zettel-host-policy-source",
+        "lastModified": 0,
+        "narHash": "sha256-sFJLGuPBa6NVZ36dChABT1vRiRkPBz10vL61c7XByF0=",
+        "path": "/nix/store/agalarqc5d5idjwg8q81sil1wnxx86jg-source",
         "type": "path"
       },
       "original": {
-        "path": "/nix/store/a7wjp19i03dhwhnlfd5h3kmzm18xlgfi-remote-zettel-host-policy-source",
+        "path": "/nix/store/agalarqc5d5idjwg8q81sil1wnxx86jg-source",
         "type": "path"
       }
     },
@@ -247,12 +247,12 @@
       "flake": false,
       "locked": {
         "lastModified": 0,
-        "narHash": "sha256-oaGrS+A0sibzkXHkgbf5pjG7D3G3gOtBkisUMwblymc=",
-        "path": "/nix/store/9p1l3n3jl21kskihcyb5hf03snbq5fvq-source",
+        "narHash": "sha256-sFJLGuPBa6NVZ36dChABT1vRiRkPBz10vL61c7XByF0=",
+        "path": "/nix/store/agalarqc5d5idjwg8q81sil1wnxx86jg-source",
         "type": "path"
       },
       "original": {
-        "path": "/nix/store/9p1l3n3jl21kskihcyb5hf03snbq5fvq-source",
+        "path": "/nix/store/agalarqc5d5idjwg8q81sil1wnxx86jg-source",
         "type": "path"
       }
     },

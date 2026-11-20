@@ -1,7 +1,7 @@
 { config, lib, pkgs, remote-zettel-software, ... }:
 let
   before = builtins.fromJSON (builtins.readFile ./host-policy-before.json);
-  epoch = "host-20261119";
+  epoch = "host-20261120";
   state = "/var/lib/remote-zettel-host-upgrades/${epoch}";
   retain = path: builtins.appendContext path { "${path}" = { path = true; }; };
   writer = name: path: rec {
@@ -31,12 +31,13 @@ in {
       epoch = lib.mkForce epoch;
       coordinatorStatePath = lib.mkForce "/var/lib/remote-zettel/work/${epoch}/state.sqlite";
       documentsRoot = lib.mkForce "/home/damon/Dropbox/agent-workspace-${epoch}";
-      retiredEpochs.task-lifecycle-v1 = writer "epoch-task-lifecycle-v1-writer-definitions" before.generation.retired.task-lifecycle-v1;
+      retiredEpochs = lib.mkForce (lib.mapAttrs (name: path: writer "epoch-${name}-writer-definitions" path)
+        (before.generation.retired // { ${before.generation.epoch} = before.generation.bundle; }));
     };
     upgrade.previous = lib.mkForce {
       inherit (before.upgrade) epoch root hostRoot documentsRoot coordinatorStatePath
         publisherStorePath ingestionDirectory approvalConfigurationFile publisherConfigurationFile;
-      executorRoot = "/var/lib/remote-zettel-work-epoch-agent-approval-v1-namespace-executor";
+      executorRoot = "/var/lib/${builtins.baseNameOf (builtins.dirOf before.storiesEnrollment.profile.supervisorSocket)}";
       sourceRepository = before.upgrade.topology.sourceConfiguration.repository;
       sourceStateDirectory = before.upgrade.topology.sourceConfiguration.stateDirectory;
       writerDefinitions = writer "epoch-agent-approval-v1-writer-definitions" before.generation.bundle;
@@ -53,12 +54,12 @@ in {
       # separate resume operator. The global maintenance hold gates startup.
       enable = lib.mkForce true;
       automatic.enable = lib.mkForce true;
-      stateGeneration = epoch;
+      stateGeneration = "${epoch}-v2";
     };
   };
   environment.etc."remote-zettel-host-software-transition.json".source = secondary.manifest;
   system.build.remoteZettelHostTransitionScripts = secondary.scripts;
-  system.extraDependencies = secondary.retain ++ [ (retain before.sourceSystem) ];
+  system.extraDependencies = secondary.retain ++ [ (retain before.sourceSystem) (pkgs.writeText "human-review-policy.patch" (builtins.readFile ../deployments/human-review-policy.patch)) ];
   system.preSwitchChecks.remote-zettel-host-software-transition = ''
     ${secondary.checkCommand}
   '';

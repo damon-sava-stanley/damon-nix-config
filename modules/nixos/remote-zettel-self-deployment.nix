@@ -21,6 +21,9 @@ in {
   nix.settings.build-users-group = lib.mkDefault "nixbld";
   system.build.remoteZettelPrivateDeploymentAdapter = adapter;
   assertions = [
+    { assertion = policy.owner.generation == app.repositoryInstances.remote-zettel.epoch
+          && policy.publication.publication.generation == app.repositoryInstances.remote-zettel.epoch;
+      message = "Commission the software publication policy before enabling a new deployment bridge."; }
     { assertion = config.nix.settings.sandbox && !lib.elem config.nix.settings.build-users-group [ "" "root" ];
       message = "Private self deployment requires sandboxed builds and separate build users."; }
     { assertion = lib.hasPrefix "/nix/store/" (toString buildFile);

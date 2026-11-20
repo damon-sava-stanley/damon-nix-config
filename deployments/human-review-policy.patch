@@ -1,0 +1,1221 @@
+diff --git a/scripts/candidate-check-backend.py b/scripts/candidate-check-backend.py
+index 8a03bdc..1d4bd7b 100644
+--- a/scripts/candidate-check-backend.py
++++ b/scripts/candidate-check-backend.py
+@@ -186,7 +186,7 @@ class SystemdCandidateBackend:
+         collector = self.units['collector'].inspect(identity['collectorId'])
+         if collector.get('state') != 'settled':
+             return {'state': 'running'}
+-        if result.get('outcome') != 'succeeded' or collector.get('outcome') != 'succeeded':
++        if result.get('outcome') not in ('succeeded', 'failed') or collector.get('outcome') != 'succeeded':
+             return {'state': 'settled', 'outcome': 'failed'}
+         try:
+             directory = self.root / 'evidence' / identity['collectorId']
+diff --git a/scripts/candidate-check-lifecycle.py b/scripts/candidate-check-lifecycle.py
+index 36f6bf9..83b38f4 100644
+--- a/scripts/candidate-check-lifecycle.py
++++ b/scripts/candidate-check-lifecycle.py
+@@ -132,7 +132,10 @@ class CandidateChecks:
+             evidence = self.backend.inspect(stage, identity)
+             if evidence.get('state') != 'settled':
+                 return {'state': 'running'}
+-            if phase.endswith('-stopping') or evidence.get('outcome') != 'succeeded':
++            completed_check = (stage == 'check' and evidence.get('outcome') == 'failed'
++                               and evidence.get('complete') is True
++                               and evidence.get('collectorOutcome') == 'succeeded')
++            if phase.endswith('-stopping') or (evidence.get('outcome') != 'succeeded' and not completed_check):
+                 result = {'state': 'settled', 'outcome': 'interrupted' if phase.endswith('-stopping') else 'failed'}
+             elif stage == 'preparation':
+                 if not evidence.get('invocationId'):
+@@ -143,15 +146,15 @@ class CandidateChecks:
+                                     (json.dumps(identity), 'check-starting', run))
+                 return self.dispatch(run, 'check', identity)
+             else:
+-                # Backend returns complete bytes only after BOTH check and collector
+-                # have positive successful invocation evidence and are quiescent.
++                # Retain the actual check outcome after check and collector settle.
++                # Failed checks can be reviewed; incomplete collection cannot.
+                 output = evidence.get('output')
+                 if (not evidence.get('invocationId') or not evidence.get('collectorInvocationId')
+                         or evidence.get('collectorOutcome') != 'succeeded'
+                         or evidence.get('complete') is not True
+                         or not isinstance(output, bytes) or len(output) > 65536):
+                     raise ValueError('Incomplete check evidence')
+-                result = {'state': 'settled', 'outcome': 'succeeded', 'identity': identity,
++                result = {'state': 'settled', 'outcome': evidence['outcome'], 'identity': identity,
+                           'invocationId': evidence['invocationId'],
+                           'collectorInvocationId': evidence['collectorInvocationId'],
+                           'outputSha256': hashlib.sha256(output).hexdigest(),
+@@ -210,7 +213,7 @@ class CandidateChecks:
+         if not isinstance(result, dict) or set(result) != fields | {'outputHex'}:
+             raise ValueError('Invalid retained check result')
+         encoded = result.pop('outputHex')
+-        if (result['state'] != 'settled' or result['outcome'] != 'succeeded'
++        if (result['state'] != 'settled' or result['outcome'] not in ('succeeded', 'failed')
+                 or result['reviewEligible'] is not False
+                 or canonical_receipt(result) != expected
+                 or canonical_receipt(result['identity']) != canonical_receipt(identity)):
+diff --git a/scripts/candidate-review-lifecycle.py b/scripts/candidate-review-lifecycle.py
+index 9b3192a..6167408 100644
+--- a/scripts/candidate-review-lifecycle.py
++++ b/scripts/candidate-review-lifecycle.py
+@@ -101,15 +101,16 @@ def validate_changes(value):
+                    (('100644', 'blob'), ('100755', 'blob'), ('120000', 'blob'), ('040000', 'tree'))):
+             raise ValueError('Invalid review object')
+         regular = entry['mode'] in ('100644', '100755')
++        textual = regular or entry['mode'] == '120000'
+         if entry['kind'] == 'tree' and (entry['byteLength'] != 0 or entry['objectId'] != '4b825dc642cb6eb9a060e54bf8d69288fbee4904'):
+             raise ValueError('Only empty tree entries are supported')
+         if entry['state'] == 'omitted':
+             if (entry['reason'] not in reasons
+-                    or (entry['reason'] == 'unsupported-file-type') == regular):
++                    or (regular if entry['reason'] == 'unsupported-file-type' else not textual)):
+                 raise ValueError('Invalid review omission')
+             complete = False
+             return
+-        if not regular or not isinstance(entry['text'], str) or not safe_text(entry['text'], True):
++        if not textual or not isinstance(entry['text'], str) or not safe_text(entry['text'], True):
+             raise ValueError('Invalid review text')
+         data = entry['text'].encode('utf-8', errors='strict')
+         if len(data) != entry['byteLength'] or len(data) > 64 * 1024:
+@@ -218,7 +219,7 @@ class CandidateReviews:
+         # operation. Capture complete output durably before any review dispatch.
+         output = self.check_output(check_operation, json.loads(raw_receipt))
+         if (not isinstance(output, bytes) or len(output) > MAX_OUTPUT
+-                or receipt.get('state') != 'settled' or receipt.get('outcome') != 'succeeded'
++                or receipt.get('state') != 'settled' or receipt.get('outcome') not in ('succeeded', 'failed')
+                 or receipt.get('reviewEligible') is not False
+                 or type(receipt.get('outputBytes')) is not int or receipt['outputBytes'] != len(output)
+                 or hashlib.sha256(output).hexdigest() != receipt.get('outputSha256')):
+diff --git a/scripts/epoch-check-files.py b/scripts/epoch-check-files.py
+index 515b081..58825ba 100644
+--- a/scripts/epoch-check-files.py
++++ b/scripts/epoch-check-files.py
+@@ -36,8 +36,15 @@ def _store(snapshot, identity, tables):
+         raise ValueError('Invalid check store role')
+     store = snapshot['stores'].get(identity)
+     capture._fields(store, ('version', 'schema', 'tables', 'source', 'unverifiedRuntimeFence', 'unverifiedCompleteEpoch'))
++    names = set(store['tables'])
++    # Current unit stores also create an unused cleanup ledger. Account for it
++    # explicitly; backend cleanup history still requires its own reader.
++    if set(tables) == {'runs'} and names == {'runs', 'cleanup_requests'}:
++        if capture._table(store, 'cleanup_requests', ('id', 'state')):
++            raise ValueError('Unsupported backend cleanup history')
++        names.remove('cleanup_requests')
+     if (type(store['version']) is not int or store['version'] != 1 or store['unverifiedRuntimeFence'] is not True
+-            or store['unverifiedCompleteEpoch'] is not True or set(store['tables']) != set(tables)):
++            or store['unverifiedCompleteEpoch'] is not True or names != set(tables)):
+         raise ValueError('Unsupported check store')
+     return store
+ 
+@@ -297,11 +304,12 @@ def verify_check_files(acquisition, *, workspace_store_id, capture_store_id, val
+             not_dispatched.extend(dict(checkOperationId=identity, stage=stage, id=value[stage + 'Id']) for stage in ('check', 'collector'))
+         elif (prep['outcome'] != 'succeeded' or prep.get('invocationId') != value['preparationInvocationId'] or check is None or collector is None):
+             raise ValueError('Check backend stage coverage mismatch')
+-        if result.get('outcome') == 'succeeded':
++        if result.get('outcome') == 'succeeded' or (result.get('outcome') == 'failed' and 'identity' in result):
+             capture._fields(result, ('state', 'outcome', 'identity', 'invocationId', 'collectorInvocationId',
+                                     'outputSha256', 'outputHex', 'outputBytes', 'commandHash', 'reviewEligible'))
+             if (result['state'] != 'settled' or result['reviewEligible'] is not False or not _equal(result['identity'], value)
+-                    or any(e['outcome'] != 'succeeded' for e in (prep, check, collector))
++                    or prep['outcome'] != 'succeeded' or collector['outcome'] != 'succeeded'
++                    or check['outcome'] != result['outcome']
+                     or result['invocationId'] != check['invocationId'] or result['collectorInvocationId'] != collector['invocationId']
+                     or result['commandHash'] != hashlib.sha256(value['binding']['command'].encode()).hexdigest()
+                     or len(_canonical({key: v for key, v in result.items() if key != 'outputHex'})) > 32768):
+diff --git a/scripts/epoch-host-journals.py b/scripts/epoch-host-journals.py
+index 7a75b07..36e8c8a 100644
+--- a/scripts/epoch-host-journals.py
++++ b/scripts/epoch-host-journals.py
+@@ -79,7 +79,7 @@ def compact(value):
+ 
+ def profile_binding(profile):
+     required = ['admissionPolicy', 'statePath', 'socketPath', 'supervisorSocket', 'repository', 'provider', 'modelId', 'checkCommand', 'timeoutMs', 'maxToolCalls', 'maxTurns']
+-    optional = [key for key in ('candidateCheckProfile', 'candidateReviewProfile', 'structuredInput') if key in profile]
++    optional = [key for key in ('candidateCheckProfile', 'candidateReviewProfile', 'structuredInput', 'resourcePolicy') if key in profile]
+     fields(profile, required + optional)
+     if profile['admissionPolicy'] not in ('sequential-v1', 'continuation-v1'):
+         raise ValueError('Unsupported admission policy')
+@@ -89,11 +89,15 @@ def profile_binding(profile):
+             raise ValueError('Noncanonical trusted path')
+     for key, limit in [('repository', 256), ('provider', 128), ('modelId', 256), ('checkCommand', 4096)]:
+         text(profile[key], limit)
+-    for key, maximum in [('timeoutMs', 300000), ('maxToolCalls', 12), ('maxTurns', 32)]:
++    if 'resourcePolicy' in profile and (profile['resourcePolicy'] != 'software-v1'
++            or profile['admissionPolicy'] != 'continuation-v1'
++            or 'candidateCheckProfile' not in profile or 'candidateReviewProfile' not in profile):
++        raise ValueError('Invalid software resource policy')
++    for key, maximum in [('timeoutMs', 3600000 if profile.get('resourcePolicy') == 'software-v1' else 300000), ('maxToolCalls', 12), ('maxTurns', 32)]:
+         if type(profile[key]) is not int or not 1 <= profile[key] <= maximum:
+             raise ValueError('Invalid resource policy')
+     for key in optional:
+-        if key != 'structuredInput': matches(HASH, profile[key])
++        if key not in ('structuredInput', 'resourcePolicy'): matches(HASH, profile[key])
+     if 'structuredInput' in profile and (profile['structuredInput'] != 'question-v1' or profile['admissionPolicy'] != 'continuation-v1'):
+         raise ValueError('Invalid structured input policy')
+     if 'candidateReviewProfile' in profile and 'candidateCheckProfile' not in profile:
+@@ -105,6 +109,8 @@ def profile_binding(profile):
+         values += ['capture-validate-check-v1', profile['candidateCheckProfile']]
+     if 'candidateReviewProfile' in profile:
+         values += ['isolated-content-review-v1', profile['candidateReviewProfile']]
++    if 'resourcePolicy' in profile:
++        values += ['software-resource-policy-v1']
+     return hashlib.sha256(compact(values).encode()).hexdigest()
+ 
+ 
+@@ -117,6 +123,8 @@ def expected_binding(profile, admission):
+     binding = dict(version=1, socket=profile['supervisorSocket'], run=admission['id'], base=admission['baseCommit'], repository=profile['repository'])
+     if 'structuredInput' in profile:
+         binding['structuredInput'] = profile['structuredInput']
++    if 'resourcePolicy' in profile:
++        binding['resourcePolicy'] = profile['resourcePolicy']
+     binding.update(request=request,
+                    provider=profile['provider'], model=profile['modelId'], check=profile['checkCommand'], timeoutMs=profile['timeoutMs'], maxToolCalls=profile['maxToolCalls'], maxTurns=profile['maxTurns'])
+     if continuation:
+diff --git a/scripts/epoch-review-inputs.py b/scripts/epoch-review-inputs.py
+index 33d0d31..c2cd493 100644
+--- a/scripts/epoch-review-inputs.py
++++ b/scripts/epoch-review-inputs.py
+@@ -104,8 +104,8 @@ def verify_review_inputs(acquisition, *, review_store_id, review_profile, **sele
+             raise ValueError('Review/check workspace mismatch')
+         result = inner_checks[check]['result']
+         receipt = {key: value for key, value in result.items() if key != 'outputHex'}
+-        if result.get('outcome') != 'succeeded' or not checks._equal(capture._json(association['receipt'], 32768), receipt):
+-            raise ValueError('Review requires exact finalized successful check receipt')
++        if result.get('outcome') not in ('succeeded', 'failed') or 'identity' not in result or not checks._equal(capture._json(association['receipt'], 32768), receipt):
++            raise ValueError('Review requires exact finalized check receipt')
+         if operation not in retained:
+             continue
+         row = retained[operation]
+diff --git a/scripts/executor-supervisor.py b/scripts/executor-supervisor.py
+index 5f7b06c..e1cc956 100644
+--- a/scripts/executor-supervisor.py
++++ b/scripts/executor-supervisor.py
+@@ -1119,7 +1119,7 @@ class MultiStepSupervisor(Supervisor):
+         if not check:
+             return {'error': 'candidate-check-unavailable'}
+         receipt = self.candidate_result(check[0])
+-        if receipt.get('state') != 'settled' or receipt.get('outcome') != 'succeeded':
++        if receipt.get('state') != 'settled' or receipt.get('outcome') not in ('succeeded', 'failed') or 'identity' not in receipt:
+             return {'error': 'candidate-check-unavailable'}
+         # Leave room for the review identity, digests and invocation receipts in
+         # the existing 32 KiB metadata transport. Raw bytes never enter this API.
+diff --git a/scripts/review-candidate.py b/scripts/review-candidate.py
+index 449b67e..4ea516c 100644
+--- a/scripts/review-candidate.py
++++ b/scripts/review-candidate.py
+@@ -77,7 +77,9 @@ def review(bundle, base, digest, byte_length, candidate, tree, *,
+             result = {'mode': mode, 'kind': kind, 'objectId': oid,
+                       'byteLength': int(git('cat-file', '-s', oid).strip())}
+             reason = None
+-            if mode not in ('100644', '100755') or kind != 'blob':
++            # Git stores a symlink's target in a blob. Review those literal
++            # bytes; never open the target or materialize the link.
++            if mode not in ('100644', '100755', '120000') or kind != 'blob':
+                 reason = 'unsupported-file-type'
+             elif result['byteLength'] > max_file_bytes:
+                 reason = 'file-byte-limit'
+diff --git a/src/browser/work-approvals.ts b/src/browser/work-approvals.ts
+index 581fb30..434e60a 100644
+--- a/src/browser/work-approvals.ts
++++ b/src/browser/work-approvals.ts
+@@ -16,7 +16,8 @@ async function approvalRequest(basePath: string, path: string, body?: unknown):
+     const response = await fetch(`${basePath}/approvals${path}`, { signal: controller.signal,
+       ...(body === undefined ? {} : { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }) });
+     const result = await boundedJson(response.ok ? response : new Response(response.body), 4 * 1024 * 1024) as any;
+-    if (!response.ok) throw new Error(result?.decision?.state === 'released' ? status(result.decision, result.publication) : 'Request denied; refresh durable approval history.');
++    if (!response.ok) throw new Error(result?.decision?.state === 'released' ? status(result.decision, result.publication)
++      : typeof result?.error === 'string' ? result.error : `Request failed (${response.status}).`);
+     return result;
+   } finally { clearTimeout(timer); }
+ }
+@@ -49,7 +50,7 @@ export async function approvalEvidence(p: Wire, id: string): Promise<DocumentFra
+     || !Number.isSafeInteger(p.generation) || p.generation < 1 || typeof p.eligible !== 'boolean') throw new Error('Invalid prepared evidence');
+   const m = p.package.manifest, e = m.expectations, b = e.promotionBinding;
+   if (m.kind !== 'approval-package-v1' || m.version !== 1 || m.decisionProtocol !== 'snapshot-release-v1'
+-    || m.eligibilityPolicy !== 'complete-text-v1' || m.approved !== false || m.publicationAuthorized !== false) throw new Error('Invalid approval manifest');
++    || !['complete-text-v1', 'human-review-v2'].includes(m.eligibilityPolicy) || m.approved !== false || m.publicationAuthorized !== false) throw new Error('Invalid approval manifest');
+   // Use the same canonical manifest commitment as the coordinator, then verify all
+   // complete byte payloads. No trust in browser-supplied publication parameters.
+   const encoded = new TextEncoder().encode(canonical(m));
+@@ -60,12 +61,13 @@ export async function approvalEvidence(p: Wire, id: string): Promise<DocumentFra
+   await decode(p.package.checkOutput, m.checkOutput.byteLength, m.checkOutput.sha256, 65536);
+   if (m.taskDocument.sha256 !== e.revision) throw new Error('Task revision mismatch');
+   const report = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(await decode(p.package.reviewContent, m.reviewContent.byteLength, m.reviewContent.sha256, 2097152)));
+-  if (report.textComplete !== true) throw new Error('Omitted approval evidence');
++  if (m.eligibilityPolicy === 'complete-text-v1' && report.textComplete !== true) throw new Error('Omitted legacy approval evidence');
+   const fragment = document.createDocumentFragment();
+   fragment.append(node('h3', 'Immutable approval snapshot'),
+     node('p', `Repository ${e.repository} · Target ${e.target}`),
+     node('p', 'Review the retained task, changes, and checks below. Approval may be released immediately; revocation is possible only BEFORE release. Unobserved external task edits cannot be excluded.'),
+     node('h4', 'Exact retained task document'), node('pre', new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(task)));
++  if (!report.textComplete) fragment.prepend(node('p', 'Some file contents are not displayed. Review the listed file identities and omission reasons before deciding whether to publish.'));
+   const provenance = document.createElement('details');
+   provenance.append(node('summary', 'Technical evidence'), node('p', `Package ${p.package.digest}`),
+     node('p', `Task ${e.taskId} · Run ${b.runId} · Revision ${e.revision}`),
+@@ -84,21 +86,23 @@ export function mountApprovals(region: HTMLElement, runIds: string[], live: () =
+   const delivery = node('p', 'Delivery enrollment has not been read. Authorization is not proof of publication.');
+   region.append(node('h2', 'Snapshot approvals and publication history'), delivery,
+     node('p', 'Release authorizes publication irrevocably. Published observations and completed destination-slot retirement are separate states. Status reflects retained evidence at the last refresh, not a live remote probe.'), error, active, history, evidence);
+-  const run = async (fn: () => Promise<void>) => {
++  const run = async (fn: () => Promise<void>, decision = false) => {
+     if (!live() || busy || boardBusy()) return;
+     busy = true; reviewing(); lock(true); error.textContent = '';
+     try { await fn(); } catch (e) {
+       if (live()) {
+-        error.textContent = `${e instanceof Error ? e.message : 'Action unavailable'}. Its outcome may already be durable. Refresh approval history before retrying; never assume a lost response withdrew approval.`;
++        error.textContent = `${e instanceof Error ? e.message : 'Action unavailable'}${decision
++          ? ' Its outcome may already be durable. Refresh approval history before retrying; never assume a lost response withdrew approval.'
++          : ' No approval was requested.'}`;
+         try { await refresh(); } catch { /* Keep uncertainty explicit if owner is unavailable. */ }
+       }
+     }
+     finally { busy = false; if (live()) lock(false); }
+   };
+-  const button = (parent: HTMLElement, label: string, fn: () => Promise<void>) => {
++  const button = (parent: HTMLElement, label: string, fn: () => Promise<void>, decision = false) => {
+     const b = node('button', label) as HTMLButtonElement;
+     b.disabled = busy || boardBusy();
+-    b.onclick = () => { if (!b.disabled && !busy && !boardBusy() && live()) void run(fn); }; parent.append(b); return b;
++    b.onclick = () => { if (!b.disabled && !busy && !boardBusy() && live()) void run(fn, decision); }; parent.append(b); return b;
+   };
+   async function inspect(id: string, expectedRunId?: string) {
+     const p = await request(`/${encodeURIComponent(id)}`) as Wire & { decision: ApprovalDecision | null; publication?: WorkPublicationStatus | null };
+@@ -112,15 +116,15 @@ export function mountApprovals(region: HTMLElement, runIds: string[], live: () =
+     evidence.replaceChildren(decisionStatus, fragment);
+     if (p.eligible && !p.decision) {
+       const action = { requestId: crypto.randomUUID(), preparationId: p.id, token: p.token, packageDigest: p.package.digest, generation: p.generation };
+-      button(evidence, 'Approve and publish exact snapshot', async () => {
+-        if (!live() || !confirm(`Authorize exact snapshot ${p.package.digest}?\nCandidate ${p.package.manifest.expectations.promotionBinding.candidateCommit}\nRelease can follow immediately and cannot be revoked. An enrolled protected dispatcher may publish without another prompt.`) || !live()) return;
++      button(evidence, p.package.manifest.checkReceipt.outcome === 'failed' ? 'Approve and publish despite failed checks' : 'Approve and publish exact snapshot', async () => {
++        if (!live()) return;
+         const result = await request('/approve', action);
+         if (!live()) return;
+         const currentStatus = node('p', status(result.decision, result.publication)); currentStatus.dataset.decisionStatus = '';
+         evidence.querySelector('[data-decision-status]')?.replaceWith(currentStatus);
+         for (const control of evidence.querySelectorAll('button')) control.remove();
+         await refresh();
+-      }).dataset.reviewMutation = '';
++      }, true).dataset.reviewMutation = '';
+     } else evidence.append(node('p', p.decision ? 'Existing decision: inspect current history; no new approval for this preparation.' : 'Historical snapshot; not eligible for approval.'));
+   }
+   async function refresh(before?: number) {
+@@ -161,7 +165,7 @@ export function mountApprovals(region: HTMLElement, runIds: string[], live: () =
+         button(row, 'Inspect immutable snapshot', () => inspect(item.id));
+         if (item.decision?.state === 'approved') {
+           const d = item.decision, action = { requestId: crypto.randomUUID(), decisionId: d.id, token: d.token, packageDigest: d.packageDigest };
+-          button(row, 'Revoke before release', async () => { await request('/revoke', action); if (live()) { evidence.replaceChildren(); await refresh(); } }).dataset.historyMutation = '';
++          button(row, 'Revoke before release', async () => { await request('/revoke', action); if (live()) { evidence.replaceChildren(); await refresh(); } }, true).dataset.historyMutation = '';
+         }
+         history.append(row);
+       }
+@@ -178,7 +182,7 @@ export function mountApprovals(region: HTMLElement, runIds: string[], live: () =
+   for (const id of runIds) {
+     const body = { requestId: crypto.randomUUID(), runId: id };
+     const target = reviewTargets?.get(id);
+-    button(target ?? region, target ? 'Review & approve' : `Prepare snapshot for run ${id}`, async () => {
++    button(target ?? region, target ? 'Review changes' : `Prepare snapshot for run ${id}`, async () => {
+       if (target) { target.append(error, evidence); evidence.replaceChildren(node('p', 'Preparing the exact review snapshot…')); }
+       const p = await request('/prepare', body);
+       if (live()) { await refresh(); await inspect(p.id, id); }
+diff --git a/src/browser/work-content.ts b/src/browser/work-content.ts
+index 292aa15..a0e7266 100644
+--- a/src/browser/work-content.ts
++++ b/src/browser/work-content.ts
+@@ -42,7 +42,10 @@ function side(value: unknown, title: string): HTMLElement {
+   const provenance = document.createElement('details');
+   provenance.append(node('summary', 'Technical evidence'), node('p', `Mode ${string(entry.mode)} · ${string(entry.kind)} · Object ${string(entry.objectId)} · ${entry.byteLength} bytes`)); section.append(provenance);
+   if (entry.state === 'omitted') section.append(node('p', `OMITTED: ${string(entry.reason)}. These bytes are not shown.`));
+-  else section.append(node('pre', string(entry.text)));
++  else {
++    if (entry.mode === '120000') section.append(node('p', 'Symbolic link target (the link is not followed):'));
++    section.append(node('pre', string(entry.text)));
++  }
+   return section;
+ }
+ 
+@@ -64,7 +67,7 @@ export async function renderCandidateContent(raw: unknown, runId: string, warnin
+     || value.runId !== runId || value.approved !== false || value.reviewEligible !== false) throw new Error('Invalid content response');
+   const receipt = value.receipt, check = receipt.identity.checkReceipt, binding = check.identity.binding;
+   if (receipt.approved !== false || receipt.reviewEligible !== false || receipt.state !== 'settled' || receipt.outcome !== 'succeeded'
+-    || check.state !== 'settled' || check.outcome !== 'succeeded' || check.reviewEligible !== false || binding.workspaceId !== runId
++    || check.state !== 'settled' || !['succeeded', 'failed'].includes(check.outcome) || check.reviewEligible !== false || binding.workspaceId !== runId
+     || receipt.outputBytes !== check.outputBytes || receipt.outputSha256 !== check.outputSha256) throw new Error('Invalid content receipt');
+   const content = await decode(value.content, receipt.contentBytes, receipt.contentSha256, 2097152);
+   const output = await decode(value.checkOutput, receipt.outputBytes, receipt.outputSha256, 65536);
+@@ -78,6 +81,7 @@ export async function renderCandidateContent(raw: unknown, runId: string, warnin
+     if (report.binding?.[key] !== expected) throw new Error('Content binding mismatch');
+   }
+   fragment.append(node('h4', value.state === 'current' ? 'Current at last document observation' : 'Historical candidate content'));
++  fragment.append(node('p', check.outcome === 'failed' ? 'Checks failed. Review the output below before deciding whether to publish.' : 'Checks passed.'));
+   const provenance = document.createElement('details');
+   provenance.append(node('summary', 'Technical evidence'), node('p', `Repository ${string(value.repository)} · Task ${string(value.taskId)} · Revision ${string(value.revision)}`),
+     node('p', `Base ${binding.baseCommit} · Candidate ${binding.candidateCommit}`)); fragment.append(provenance);
+diff --git a/src/shared/work-candidate.ts b/src/shared/work-candidate.ts
+index 50d1e94..170e88a 100644
+--- a/src/shared/work-candidate.ts
++++ b/src/shared/work-candidate.ts
+@@ -1,6 +1,6 @@
+ /** Candidate evidence contracts; none grants publication authority. */
+ export interface CandidateReceipt {
+-  state: 'settled'; outcome: 'succeeded'; reviewEligible: false;
++  state: 'settled'; outcome: 'succeeded' | 'failed'; reviewEligible: false;
+   identity: {
+     binding: { workspaceId: string; validationId: string; artifactId: string; baseCommit: string;
+       sha256: string; byteLength: number; candidateCommit: string; candidateTree: string; profileId: string; command: string };
+diff --git a/src/work/approval-package-store.ts b/src/work/approval-package-store.ts
+index eb8e18c..988af59 100644
+--- a/src/work/approval-package-store.ts
++++ b/src/work/approval-package-store.ts
+@@ -90,7 +90,7 @@ export class ApprovalPackageStore {
+       reviewContent: Buffer.from(row.review_content as Uint8Array),
+       checkOutput: Buffer.from(row.check_output as Uint8Array),
+       checkReceipt: manifest.checkReceipt, reviewReceipt: manifest.reviewReceipt, promotionReceipt: manifest.promotionReceipt,
+-    });
++    }, manifest.eligibilityPolicy);
+     if (pkg.digest !== row.digest || canonicalPromotionJson(pkg.manifest) !== row.manifest)
+       throw new Error('Retained package mismatch');
+     return { id, package: pkg };
+@@ -112,7 +112,8 @@ export class ApprovalPackageStore {
+       this.contract();
+       const prior = this.read(id);
+       if (prior) {
+-        if (prior.package.digest !== pkg.digest) throw new Error('Package replay mismatch');
++        const replay = buildApprovalPackage(expectations, evidence, prior.package.manifest.eligibilityPolicy);
++        if (prior.package.digest !== replay.digest) throw new Error('Package replay mismatch');
+         return prior;
+       }
+       const usage = this.db.prepare(`SELECT COUNT(*) AS count, COALESCE(SUM(length(CAST(manifest AS BLOB)) +
+diff --git a/src/work/approval-package.ts b/src/work/approval-package.ts
+index 5c40d99..b306bf6 100644
+--- a/src/work/approval-package.ts
++++ b/src/work/approval-package.ts
+@@ -59,7 +59,9 @@ function captureExpectation(value: unknown, resolved: boolean): ApprovalAcquisit
+  * No I/O, persistence, mutable path references or implicit v1 publication upgrade.
+  * Returned buffers and metadata are owned copies; callers must persist them together.
+  */
+-export function buildApprovalPackage(expected: unknown, evidence: unknown) {
++export type ApprovalEligibilityPolicy = 'complete-text-v1' | 'human-review-v2';
++export function buildApprovalPackage(expected: unknown, evidence: unknown, eligibilityPolicy: ApprovalEligibilityPolicy = 'human-review-v2') {
++  if (!['complete-text-v1', 'human-review-v2'].includes(eligibilityPolicy)) throw new Error('Unknown approval eligibility policy');
+   const e = captureApprovalPackageExpectation(expected);
+   const v = fields(evidence, 'taskDocument checkReceipt reviewReceipt reviewContent checkOutput promotionReceipt');
+   const taskDocument = bytes(v.taskDocument, taskDocumentLimit);
+@@ -69,6 +71,7 @@ export function buildApprovalPackage(expected: unknown, evidence: unknown) {
+   if (task.id !== e.taskId || task.revision !== e.revision) throw new Error('Task snapshot mismatch');
+   const b = e.promotionBinding;
+   const check = captureCandidateReceipt(v.checkReceipt, { workspaceId: b.workspaceId, baseCommit: b.baseCommit, profileId: b.checkPolicyDigest });
++  if (eligibilityPolicy === 'complete-text-v1' && check.outcome !== 'succeeded') throw new Error('Legacy approval requires passing checks');
+   const cb = check.identity.binding;
+   if (digest(check) !== b.checkReceiptSha256 || cb.artifactId !== b.artifactId || cb.sha256 !== b.artifactSha256
+     || cb.byteLength !== b.artifactBytes || cb.candidateCommit !== b.candidateCommit || cb.candidateTree !== b.candidateTree) throw new Error('Check/promotion mismatch');
+@@ -78,12 +81,12 @@ export function buildApprovalPackage(expected: unknown, evidence: unknown) {
+   validateEpochReviewContent(reviewContent, cb);
+   // Validation above proves that textComplete exactly accounts for every side.
+   const content = JSON.parse(reviewContent.toString('utf8')) as { textComplete: boolean; binding: unknown };
+-  if (!content.textComplete) throw new Error('Omitted review content is not eligible for package preparation');
++  if (eligibilityPolicy === 'complete-text-v1' && !content.textComplete) throw new Error('Omitted review content is not eligible for the legacy policy');
+   const promoted = capturePromotionReceipt(v.promotionReceipt, { installationId: e.promotionId, policySha256: e.promotionPolicyDigest, binding: b });
+   if (!isDeepStrictEqual(content.binding, (promoted.preparation as Row).validation)) throw new Error('Review/preparation validation mismatch');
+   const manifest = {
+     version: 1 as const, kind: 'approval-package-v1' as const,
+-    decisionProtocol: 'snapshot-release-v1' as const, eligibilityPolicy: 'complete-text-v1' as const,
++    decisionProtocol: 'snapshot-release-v1' as const, eligibilityPolicy,
+     expectations: e, checkReceipt: check, reviewReceipt: review, promotionReceipt: promoted,
+     taskDocument: { sha256: hash(taskDocument), byteLength: taskDocument.length },
+     reviewContent: { sha256: hash(reviewContent), byteLength: reviewContent.length },
+diff --git a/src/work/candidate-epoch-check-snapshot.ts b/src/work/candidate-epoch-check-snapshot.ts
+index 7d292b6..e01472c 100644
+--- a/src/work/candidate-epoch-check-snapshot.ts
++++ b/src/work/candidate-epoch-check-snapshot.ts
+@@ -56,7 +56,7 @@ export function verifyCandidateEpochCheckSnapshot(manifest: Uint8Array, objects:
+     if (!result || typeof result !== 'object' || Array.isArray(result)) throw new Error('Invalid check result');
+     const r = result as Row;
+     let receipt: CandidateReceipt | undefined;
+-    if (r.outcome === 'succeeded') {
++    if (r.outcome === 'succeeded' || (r.outcome === 'failed' && Object.hasOwn(r, 'identity'))) {
+       const { outputHex, ...metadata } = r;
+       receipt = captureCandidateReceipt(metadata, { workspaceId: association.workspace as string, baseCommit: outer.inventory.baseCommit,
+         profileId: outer.inventory.candidatePolicy.profileId });
+@@ -95,7 +95,7 @@ export function verifyCandidateEpochCheckSnapshot(manifest: Uint8Array, objects:
+       for (const stage of ['check', 'collector'] as const) notDispatched.push({ checkOperationId: id, stage, id: identity[`${stage}Id`] as string });
+     } else {
+       if (prep.outcome !== 'succeeded' || prep.invocationId !== identity.preparationInvocationId || !unit || !collector) throw new Error('Check backend stage coverage mismatch');
+-      if (check.receipt && (unit.outcome !== 'succeeded' || collector.outcome !== 'succeeded'
++      if (check.receipt && (unit.outcome !== check.receipt.outcome || collector.outcome !== 'succeeded'
+         || unit.invocationId !== check.receipt.invocationId || collector.invocationId !== check.receipt.collectorInvocationId)) throw new Error('Check backend receipt invocation mismatch');
+     }
+   }
+diff --git a/src/work/candidate-epoch-host-candidates.ts b/src/work/candidate-epoch-host-candidates.ts
+index e260a75..8da96a3 100644
+--- a/src/work/candidate-epoch-host-candidates.ts
++++ b/src/work/candidate-epoch-host-candidates.ts
+@@ -62,7 +62,8 @@ export function verifyCandidateEpochHostCandidates(manifest: Uint8Array, objects
+       }
+       if (stage.table === 'candidate_reviews' && association && (association.check_operation !== candidate.operationId
+         || !isDeepStrictEqual(persisted(association.receipt), candidate.receipt))) throw new Error('Journal/review check receipt mismatch');
+-      if (phase >= stage.acknowledged && result?.outcome !== 'succeeded') throw new Error('Journal phase lacks finalized upstream success');
++      if (phase >= stage.acknowledged && result?.outcome !== 'succeeded'
++        && !(stage.table === 'candidate_checks' && result?.outcome === 'failed' && Object.hasOwn(result, 'identity'))) throw new Error('Journal phase lacks finalized upstream result');
+       if (phase >= stage.acknowledged && (stage.table === 'candidate_checks' || stage.table === 'candidate_reviews')) {
+         const { outputHex: _, ...receipt } = result!;
+         if (!isDeepStrictEqual(receipt, stage.table === 'candidate_checks' ? candidate.receipt : candidate.reviewReceipt)) throw new Error('Journal/candidate receipt mismatch');
+diff --git a/src/work/candidate-epoch-host-job.ts b/src/work/candidate-epoch-host-job.ts
+index e9185c8..16d7195 100644
+--- a/src/work/candidate-epoch-host-job.ts
++++ b/src/work/candidate-epoch-host-job.ts
+@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
+ import { isDeepStrictEqual } from 'node:util';
+ import { parseEpochSnapshotJson } from './epoch-snapshot-json.ts';
+ import { verifyAcquiredHostJournals } from './candidate-epoch-host-journals.ts';
+-import type { PiWorkProfile } from './pi-work-service.ts';
++import { executionProfile, type PiWorkProfile } from './pi-work-service.ts';
+ 
+ export const HOST_JOB_LIMITS = Object.freeze({ acquisition: 16 * 1024 * 1024, enrollment: 64 * 1024,
+   job: 4 * Math.ceil((16 * 1024 * 1024 + 64 * 1024) / 3) + 4096, result: 16384 });
+@@ -39,7 +39,7 @@ function decode(value: unknown, limit: number): Buffer {
+ }
+ function profile(value: unknown): PiWorkProfile {
+   const required = ['admissionPolicy', 'statePath', 'socketPath', 'supervisorSocket', 'repository', 'provider', 'modelId', 'checkCommand', 'timeoutMs', 'maxToolCalls', 'maxTurns'];
+-  const optional = ['candidateCheckProfile', 'candidateReviewProfile'].filter(k => value && typeof value === 'object' && Object.hasOwn(value, k));
++  const optional = ['candidateCheckProfile', 'candidateReviewProfile', 'structuredInput', 'resourcePolicy'].filter(k => value && typeof value === 'object' && Object.hasOwn(value, k));
+   fields(value, [...required, ...optional]);
+   if (!['sequential-v1', 'continuation-v1'].includes(String(value.admissionPolicy))) throw new Error('Invalid host job policy');
+   const text = (key: string, limit: number) => {
+@@ -52,11 +52,9 @@ function profile(value: unknown): PiWorkProfile {
+     if (!path.startsWith('/') || path.slice(1).split('/').some(p => !p || p === '.' || p === '..')) throw new Error('Invalid host job profile path');
+   }
+   for (const [k, limit] of [['repository', 256], ['provider', 128], ['modelId', 256], ['checkCommand', 4096]] as const) text(k, limit);
+-  for (const [k, max] of [['timeoutMs', 300000], ['maxToolCalls', 12], ['maxTurns', 32]] as const) {
+-    const n = value[k]; if (typeof n !== 'number' || !Number.isSafeInteger(n) || n < 1 || n > max) throw new Error('Invalid host job profile limit');
+-  }
+-  for (const k of optional) if (typeof value[k] !== 'string' || !/^[a-f0-9]{64}$/.test(value[k])) throw new Error('Invalid host job candidate policy');
+-  if (optional.includes('candidateReviewProfile') && !optional.includes('candidateCheckProfile')) throw new Error('Host job review requires checks');
++  // Use the live host's profile validation for resource and tool policies, so
++  // archived software/structured-input profiles cannot drift from that schema.
++  executionProfile(value as unknown as PiWorkProfile);
+   return value as unknown as PiWorkProfile;
+ }
+ 
+diff --git a/src/work/candidate-epoch-host-journals.ts b/src/work/candidate-epoch-host-journals.ts
+index 3b7f2b8..fded6be 100644
+--- a/src/work/candidate-epoch-host-journals.ts
++++ b/src/work/candidate-epoch-host-journals.ts
+@@ -60,8 +60,9 @@ export function captureTerminalPiJournal(raw: string, profile: PiWorkProfile, ru
+       if (operation.key === 'host:check') {
+         if (operation.command !== profile.checkCommand) throw new Error('Journal check command mismatch');
+       } else if (operation.key === 'host:diff') {
+-        if (!keys.has('host:check') || operation.command !== piHostDiffCommand(run.baseCommit)
+-          || journal.operations.find((op: any) => op.key === 'host:check')?.evidence?.outcome !== 'succeeded') throw new Error('Journal diff prerequisite mismatch');
++        const requiresCheckoutCheck = profile.resourcePolicy !== 'software-v1' || keys.has('host:check');
++        if (operation.command !== piHostDiffCommand(run.baseCommit) || (requiresCheckoutCheck
++          && journal.operations.find((op: any) => op.key === 'host:check')?.evidence?.outcome !== 'succeeded')) throw new Error('Journal diff prerequisite mismatch');
+       } else throw new Error('Unknown journal command key');
+     }
+     if (!('evidence' in operation) && (operation !== journal.operations.at(-1) || journal.outcome === 'needs-review')) throw new Error('Unsettled operation before later work');
+@@ -72,7 +73,8 @@ export function captureTerminalPiJournal(raw: string, profile: PiWorkProfile, ru
+     }
+   }
+   if (hostCommands && !Object.hasOwn(journal, 'summary')) throw new Error('Host checks require retained model completion');
+-  const success = ['host:check', 'host:diff'].every(key => journal.operations.find((op: any) => op.key === key)?.evidence?.outcome === 'succeeded');
++  const prerequisites = profile.resourcePolicy === 'software-v1' && !keys.has('host:check') ? ['host:diff'] : ['host:check', 'host:diff'];
++  const success = prerequisites.every(key => journal.operations.find((op: any) => op.key === key)?.evidence?.outcome === 'succeeded');
+   if (journal.outcome === 'needs-review' && !success) throw new Error('Successful journal missing check/diff');
+   if ('candidate' in journal) {
+     if (!profile.candidateCheckProfile || !success) throw new Error('Unexpected candidate journal');
+diff --git a/src/work/candidate-epoch-retained-output-snapshot.ts b/src/work/candidate-epoch-retained-output-snapshot.ts
+index 765fa0b..f3a6b00 100644
+--- a/src/work/candidate-epoch-retained-output-snapshot.ts
++++ b/src/work/candidate-epoch-retained-output-snapshot.ts
+@@ -24,7 +24,7 @@ export function verifyCandidateEpochRetainedOutputSnapshot(manifest: Uint8Array,
+   const expected = new Map<string, Buffer>();
+   for (const row of outer.candidateChecks.tables.checks!) {
+     const result = JSON.parse(row.result as string);
+-    if (result.outcome === 'succeeded') expected.set(`check:${row.id}`, Buffer.from(result.outputHex, 'hex'));
++    if (result.outcome === 'succeeded' || (result.outcome === 'failed' && Object.hasOwn(result, 'identity'))) expected.set(`check:${row.id}`, Buffer.from(result.outputHex, 'hex'));
+   }
+   for (const row of outer.candidateReviews.tables.reviews!) {
+     const result = JSON.parse(row.result as string);
+diff --git a/src/work/candidate-epoch-review-content.ts b/src/work/candidate-epoch-review-content.ts
+index 490aedc..6afb33e 100644
+--- a/src/work/candidate-epoch-review-content.ts
++++ b/src/work/candidate-epoch-review-content.ts
+@@ -43,13 +43,14 @@ export function validateEpochReviewContent(data: Uint8Array, binding: Binding):
+     if (typeof e.objectId !== 'string' || !/^[a-f0-9]{40}$/.test(e.objectId) || !integer(e.byteLength, 0, 32 * 1024 * 1024)
+       || ![['100644', 'blob'], ['100755', 'blob'], ['120000', 'blob'], ['040000', 'tree']].some(([mode, kind]) => e.mode === mode && e.kind === kind)) throw new Error('Invalid review object');
+     const regular = e.mode === '100644' || e.mode === '100755';
++    const textual = regular || e.mode === '120000';
+     if (e.kind === 'tree' && (e.byteLength !== 0 || e.objectId !== '4b825dc642cb6eb9a060e54bf8d69288fbee4904')) throw new Error('Invalid review tree');
+     if (e.state === 'omitted') {
+       if (!['unsupported-file-type', 'file-byte-limit', 'total-text-byte-limit', 'binary-or-control-content', 'non-utf8-content'].includes(e.reason as string)
+-        || (e.reason === 'unsupported-file-type') === regular) throw new Error('Invalid review omission');
++        || (e.reason === 'unsupported-file-type' ? regular : !textual)) throw new Error('Invalid review omission');
+       complete = false;
+     } else {
+-      if (!regular || typeof e.text !== 'string' || !safeText(e.text, true)) throw new Error('Invalid review text');
++      if (!textual || typeof e.text !== 'string' || !safeText(e.text, true)) throw new Error('Invalid review text');
+       const bytes = Buffer.from(e.text);
+       if (utf8(bytes) !== e.text || bytes.length !== e.byteLength || bytes.length > 65536) throw new Error('Review text length/encoding mismatch');
+       if (createHash('sha1').update(`blob ${bytes.length}\0`).update(bytes).digest('hex') !== e.objectId) throw new Error('Review text object mismatch');
+diff --git a/src/work/candidate-evidence.ts b/src/work/candidate-evidence.ts
+index 466cdbb..882ffce 100644
+--- a/src/work/candidate-evidence.ts
++++ b/src/work/candidate-evidence.ts
+@@ -23,7 +23,7 @@ function count(value: unknown, max: number): asserts value is number {
+  * Structural parsing is not provenance verification or publication authorization. */
+ export function captureCandidateReceipt(value: unknown, expected: { workspaceId: string; baseCommit: string; profileId: string }): CandidateReceipt {
+   const result = object(value, ['state', 'outcome', 'reviewEligible', 'identity', 'invocationId', 'collectorInvocationId', 'outputSha256', 'outputBytes', 'commandHash']);
+-  if (result.state !== 'settled' || result.outcome !== 'succeeded' || result.reviewEligible !== false) throw new Error('Candidate checks did not succeed');
++  if (result.state !== 'settled' || (result.outcome !== 'succeeded' && result.outcome !== 'failed') || result.reviewEligible !== false) throw new Error('Candidate check result unavailable');
+   const identity = object(result.identity, ['binding', 'preparationId', 'checkId', 'collectorId', 'preparationInvocationId']);
+   const binding = object(identity.binding, ['workspaceId', 'validationId', 'artifactId', 'baseCommit', 'sha256', 'byteLength', 'candidateCommit', 'candidateTree', 'profileId', 'command']);
+   for (const key of ['workspaceId', 'validationId', 'artifactId']) text(binding[key], uuid);
+diff --git a/src/work/pi-fixture-host.ts b/src/work/pi-fixture-host.ts
+index 5f5b5bc..c15eb43 100644
+--- a/src/work/pi-fixture-host.ts
++++ b/src/work/pi-fixture-host.ts
+@@ -200,7 +200,7 @@ export class PiFixtureHost {
+         response = await this.request({ action: inspect, id: this.options.runId, operationId }); this.admit();
+       }
+       const result = record(response);
+-      if (result.state !== 'settled' || result.outcome !== 'succeeded'
++      if (result.state !== 'settled' || (result.outcome !== 'succeeded' && !(phase === 'check' && result.outcome === 'failed'))
+         || ((phase === 'capture' || phase === 'validation') && (!/^[a-f0-9]{32}$/.test(result.invocationId) || result.exitCode !== 0 || result.signal !== null || result.result !== 'success'))) throw new Error('Candidate stage did not succeed');
+       return result;
+     };
+@@ -274,8 +274,12 @@ export class PiFixtureHost {
+       if (this.operationActive) throw new Error('Model command still active');
+       this.session.dispose(); this.session = undefined;
+     }
+-    const check = await this.command('host:check', this.options.checkCommand);
+-    if (check.outcome !== 'succeeded') return 'failed';
++    // Software receives the same trusted check on its frozen candidate below.
++    // Running it on the writable checkout as well duplicates the full suite.
++    if (this.options.resourcePolicy !== 'software-v1') {
++      const check = await this.command('host:check', this.options.checkCommand);
++      if (check.outcome !== 'succeeded') return 'failed';
++    }
+     const diff = await this.command('host:diff', piHostDiffCommand(this.options.baseCommit));
+     if (diff.outcome !== 'succeeded') return 'failed';
+     if (this.options.candidateCheckProfile) await this.produceCandidate();
+diff --git a/src/work/pi-work-service.ts b/src/work/pi-work-service.ts
+index 8b0897f..eed0484 100644
+--- a/src/work/pi-work-service.ts
++++ b/src/work/pi-work-service.ts
+@@ -138,7 +138,7 @@ export function projectPiHostObservation(result: HostObservation, run: PiAdmissi
+   if (candidateCheckProfile && outcome === 'succeeded' && (!candidate?.receipt || candidate.phase !== (candidateReviewProfile ? 'reviewed' : 'checked')
+     || candidate.captureId !== candidate.receipt.identity.binding.artifactId
+     || candidate.validationId !== candidate.receipt.identity.binding.validationId)) throw new Error('Host candidate receipt unavailable');
+-  return capturePiObservation({ state: 'settled', outcome, ...(outcome === 'awaiting-input' ? { question: result.question, continuationEligible: true } : {}), summary: reportSummary(`Pi fixture review evidence; NOT publication approval. Full evidence remains in the private host journal.\nModel: ${result.model.provider}/${result.model.id}\nOperations: ${JSON.stringify(evidence)}\nUntrusted model summary:\n${excerpt(result.summary ?? '', 1024)}\nUntrusted check/diff excerpts (not independent acceptance verification):\n${outputs}`, !!candidate, candidate ? Buffer.byteLength(JSON.stringify(candidate)) : 0),
++  return capturePiObservation({ state: 'settled', outcome, ...(outcome === 'awaiting-input' ? { question: result.question, continuationEligible: true } : {}), summary: reportSummary(`Pi fixture review evidence; NOT publication approval. Full evidence remains in the private host journal.\nModel: ${result.model.provider}/${result.model.id}\n${candidate?.receipt?.outcome === 'failed' ? 'Candidate checks failed; review the output before deciding whether to publish.\n' : ''}Operations: ${JSON.stringify(evidence)}\nUntrusted model summary:\n${excerpt(result.summary ?? '', 1024)}\nUntrusted check/diff excerpts (not independent acceptance verification):\n${outputs}`, !!candidate, candidate ? Buffer.byteLength(JSON.stringify(candidate)) : 0),
+     ...(candidate ? { candidate: { operationId: candidate.operationId, receipt: candidate.receipt,
+       ...(candidateReviewProfile ? { contentReview: { operationId: candidate.reviewId, receipt: candidate.reviewReceipt } } : {}),
+     } } : {}) }, run, candidateCheckProfile, candidateReviewProfile);
+diff --git a/src/work/publication-authorization.ts b/src/work/publication-authorization.ts
+index c675bcd..78c8b73 100644
+--- a/src/work/publication-authorization.ts
++++ b/src/work/publication-authorization.ts
+@@ -113,7 +113,7 @@ export function capturePublicationRelease(bytes: Buffer, expected: ReleaseExpect
+       || !policy.human.subjects.includes(principal.subject)) throw new Error('Publication principal enrollment mismatch');
+   }
+   const m = fields(a.manifest, 'version kind decisionProtocol eligibilityPolicy expectations checkReceipt reviewReceipt promotionReceipt taskDocument reviewContent checkOutput approved publicationAuthorized');
+-  if (m.version !== 1 || m.kind !== 'approval-package-v1' || m.decisionProtocol !== 'snapshot-release-v1' || m.eligibilityPolicy !== 'complete-text-v1'
++  if (m.version !== 1 || m.kind !== 'approval-package-v1' || m.decisionProtocol !== 'snapshot-release-v1' || (m.eligibilityPolicy !== 'complete-text-v1' && m.eligibilityPolicy !== 'human-review-v2')
+     || m.approved !== false || m.publicationAuthorized !== false || Buffer.byteLength(canonicalPromotionJson(m)) > 64 * 1024 || digest(m) !== d.packageDigest)
+     throw new Error('Publication package contract mismatch');
+   const e = captureApprovalPackageExpectation(m.expectations), b = e.promotionBinding;
+@@ -123,6 +123,7 @@ export function capturePublicationRelease(bytes: Buffer, expected: ReleaseExpect
+   for (const key of ['destinationPolicyDigest', 'publicationPolicyDigest', 'promotionPolicyDigest', 'reviewPolicyDigest', 'candidateSourceId', 'contentSourceId'] as const)
+     if (e[key] !== policy[key]) throw new Error('Publication policy mismatch');
+   const check = captureCandidateReceipt(m.checkReceipt, { workspaceId: b.workspaceId, baseCommit: b.baseCommit, profileId: b.checkPolicyDigest });
++  if (m.eligibilityPolicy === 'complete-text-v1' && check.outcome !== 'succeeded') throw new Error('Legacy publication requires passing checks');
+   const cb = check.identity.binding;
+   if (digest(check) !== b.checkReceiptSha256 || cb.artifactId !== b.artifactId || cb.sha256 !== b.artifactSha256 || cb.byteLength !== b.artifactBytes
+     || cb.candidateCommit !== b.candidateCommit || cb.candidateTree !== b.candidateTree) throw new Error('Publication check/candidate mismatch');
+diff --git a/tests/browser-work-approvals.test.ts b/tests/browser-work-approvals.test.ts
+index a402269..bdd0aaa 100644
+--- a/tests/browser-work-approvals.test.ts
++++ b/tests/browser-work-approvals.test.ts
+@@ -10,14 +10,23 @@ import { renderWork } from '../src/browser/work.ts';
+ import type { WorkPublicationStatus } from '../src/shared/work-publication.ts';
+ const sha = (v: string | Buffer) => createHash('sha256').update(v).digest('hex');
+ const hostile = '<img src=x onerror=alert(1)> é 🌍';
+-function fixture() {
++function fixture(omitted = false, failedChecks = false) {
+   const taskId = randomUUID(), runId = randomUUID();
+   const taskDocument = Buffer.from(encodeTaskDocument(taskId, { repository: 'owner/stories', title: 'Review', request: hostile, acceptanceCriteria: 'Pass' }));
+   const r = preparationEvidence(taskId, runId, sha(taskDocument));
++  if (failedChecks) r.checkReceipt.outcome = 'failed';
+   r.checkReceipt.identity.binding.command = `printf '${hostile}'`; r.checkReceipt.commandHash = sha(r.checkReceipt.identity.binding.command);
+   r.reviewReceipt.identity.checkReceipt = structuredClone(r.checkReceipt);
+   r.expected.promotionBinding.checkReceiptSha256 = sha(canonicalPromotionJson(r.checkReceipt));
+   r.promotionReceipt.binding = structuredClone(r.expected.promotionBinding); r.promotionReceipt.bindingSha256 = sha(canonicalPromotionJson(r.expected.promotionBinding));
++  if (omitted) {
++    const report = JSON.parse(r.reviewContent.toString('utf8'));
++    const side = report.changes[0].after;
++    report.includedTextBytes -= side.byteLength;
++    delete side.text; side.state = 'omitted'; side.reason = 'binary-or-control-content'; report.textComplete = false;
++    r.reviewContent = Buffer.from(JSON.stringify(report));
++    r.reviewReceipt.contentSha256 = sha(r.reviewContent); r.reviewReceipt.contentBytes = r.reviewContent.length;
++  }
+   const pkg = buildApprovalPackage(r.expected, { taskDocument, checkReceipt: r.checkReceipt, reviewReceipt: r.reviewReceipt,
+     reviewContent: r.reviewContent, checkOutput: r.checkOutput, promotionReceipt: r.promotionReceipt });
+   return { version: 1 as const, encoding: 'base64' as const, id: randomUUID(), token: randomUUID(), generation: 1, eligible: true, captureDigest: 'a'.repeat(64), approved: false as const, publicationAuthorized: false as const,
+@@ -120,7 +129,29 @@ test('background history does not enter review; released package inspection has
+   expect(find('Approve and publish')).toBeUndefined(); expect(document.body.textContent).toContain('NOT confirmed publication');
+   expect(document.body.textContent).not.toContain('Not approved · No publication authority');
+ });
+-test('confirmation posts the inspected exact token/digest; no body identity or release parameters', async () => {
++test('explicit omissions remain visible and allow a human publication decision', async () => {
++  const p = fixture(true), runId = p.package.manifest.expectations.promotionBinding.runId;
++  const fetcher = vi.fn(async (path: string) => response(path.endsWith('/prepare') || path.endsWith(p.id) ? p : empty));
++  mount(fetcher, [runId]);
++  find('Prepare snapshot').click();
++  await vi.waitFor(() => expect(find('Approve and publish')?.disabled).toBe(false));
++  expect(document.body.textContent).toContain('Some file contents are not displayed');
++  expect(document.body.textContent).toContain('OMITTED: binary-or-control-content');
++  expect(fetcher.mock.calls.some(c => c[0].endsWith('/approve'))).toBe(false);
++});
++
++test('failed checks are shown and require an explicit publish-despite-failure action', async () => {
++  const p = fixture(false, true), runId = p.package.manifest.expectations.promotionBinding.runId;
++  const fetcher = vi.fn(async (path: string) => response(path.endsWith('/prepare') || path.endsWith(p.id) ? p : path.endsWith('/approve') ? { decision: decision(p) } : empty));
++  mount(fetcher, [runId]); find('Prepare snapshot').click();
++  await vi.waitFor(() => expect(find('Approve and publish despite failed checks')?.disabled).toBe(false));
++  expect(document.body.textContent).toContain('Checks failed');
++  expect(fetcher.mock.calls.some(c => c[0].endsWith('/approve'))).toBe(false);
++  find('Approve and publish despite failed checks').click();
++  await vi.waitFor(() => expect(fetcher.mock.calls.filter(c => c[0].endsWith('/approve'))).toHaveLength(1));
++});
++
++test('one explicit approval posts the inspected exact token/digest; no body identity or release parameters', async () => {
+   const p = fixture(), runId = p.package.manifest.expectations.promotionBinding.runId;
+   const fetcher = vi.fn(async (path: string) => response(path.endsWith('/prepare') || path.endsWith(p.id) ? p : path.endsWith('/approve') ? { decision: decision(p) } : empty));
+   mount(fetcher, [runId]); vi.stubGlobal('confirm', vi.fn(() => true));
+@@ -128,7 +159,7 @@ test('confirmation posts the inspected exact token/digest; no body identity or r
+   find('Approve and publish').click(); await vi.waitFor(() => expect(fetcher.mock.calls.some(c => c[0].endsWith('/approve'))).toBe(true));
+   const call = (fetcher.mock.calls as any[]).find(c => c[0].endsWith('/approve'));
+   expect(JSON.parse(call[1].body)).toEqual({ requestId: expect.any(String), preparationId: p.id, token: p.token, generation: p.generation, packageDigest: p.package.digest });
+-  expect(confirm).toHaveBeenCalledWith(expect.stringContaining(p.package.digest));
++  expect(confirm).not.toHaveBeenCalled();
+ });
+ test('navigation during acquisition prevents stale evidence and decision controls', async () => {
+   const p = fixture(); let resolve!: (r: Response) => void, live = true;
+@@ -205,7 +236,7 @@ test('task review prepares the selected snapshot in place and keeps inspected by
+   const field = document.querySelector<HTMLTextAreaElement>('[name=feedback]')!;
+   field.value = 'Keep this review draft'; field.dispatchEvent(new Event('input'));
+   const card = document.querySelector('[data-task]')!;
+-  find('Review & approve').click();
++  find('Review changes').click();
+   await vi.waitFor(() => expect(card.textContent).toContain('Immutable approval snapshot'));
+   expect(find('Approve and publish')).toBeDefined(); expect(field.value).toBe('Keep this review draft');
+   const preparation = fetcher.mock.calls.find(c => c[0].endsWith('/prepare'))!;
+@@ -226,7 +257,9 @@ test('task review reports preparation errors visibly beside the task', async ()
+   vi.stubGlobal('fetch', vi.fn(async (path: string) => path.endsWith('/prepare') ? response({ error: 'Enrollment missing' }, 409) : response(empty)));
+   const board: any = { tasks: [{ id: e.taskId, repository: e.repository, title: 'Review', request: 'Story', acceptanceCriteria: 'Pass', revision: e.revision, status: 'needs-you' }], repositories: [e.repository], issues: [], workerMode: 'pi', approvalsEnabled: true,
+     runs: [{ id: runId, taskId: e.taskId, revision: e.revision, status: 'needs-you', summary: '', notice: '', invalidated: false }] };
+-  await renderWork(document.body, () => true, board); find('Review & approve').click();
+-  await vi.waitFor(() => expect(document.querySelector('[data-task-review] [role=alert]')?.textContent).toContain('Request denied'));
++  await renderWork(document.body, () => true, board); find('Review changes').click();
++  await vi.waitFor(() => expect(document.querySelector('[data-task-review] [role=alert]')?.textContent).toContain('Enrollment missing'));
++  expect(document.body.textContent).toContain('No approval was requested');
++  expect(document.body.textContent).not.toContain('outcome may already be durable');
+   expect(find('Approve and publish')).toBeUndefined();
+ });
+diff --git a/tests/browser-work-content.test.ts b/tests/browser-work-content.test.ts
+index f1583f2..cf56b1e 100644
+--- a/tests/browser-work-content.test.ts
++++ b/tests/browser-work-content.test.ts
+@@ -28,6 +28,17 @@ afterEach(() => { vi.unstubAllGlobals(); document.body.innerHTML = ''; });
+ function serve(value: unknown) {
+   vi.stubGlobal('crypto', webcrypto); const fetcher = vi.fn(async () => response(value)); vi.stubGlobal('fetch', fetcher); return fetcher;
+ }
++it('labels symbolic link targets and renders their stored bytes as inert text', async () => {
++  const wire = fixture();
++  const report = JSON.parse(Buffer.from(wire.content, 'base64').toString());
++  report.changes[0].before.mode = '120000';
++  const content = Buffer.from(JSON.stringify(report));
++  wire.content = content.toString('base64'); wire.receipt.contentBytes = content.length; wire.receipt.contentSha256 = hash(content);
++  serve(wire); document.body.append(await loadCandidateContent('run'));
++  expect(document.body.textContent).toContain('Symbolic link target (the link is not followed)');
++  expect(document.querySelector('img, script, a')).toBeNull();
++});
++
+ it.each(['current', 'historical'])('renders %s exact text, explicit omissions and complete binary output inertly', async state => {
+   const wire = fixture(state); serve(wire);
+   document.body.append(await loadCandidateContent('run'));
+diff --git a/tests/browser-work-repositories.test.ts b/tests/browser-work-repositories.test.ts
+index 95ad6dd..8c3b4c9 100644
+--- a/tests/browser-work-repositories.test.ts
++++ b/tests/browser-work-repositories.test.ts
+@@ -40,7 +40,7 @@ test('approval preparation and recovery refresh stay inside the selected reposit
+   vi.stubGlobal('fetch', fetcher);
+   await renderWork(document.body, () => true, value);
+   document.querySelector<HTMLButtonElement>('[data-task="software"] [data-review-prepare]')!.click();
+-  await vi.waitFor(() => expect(document.querySelector('[data-task="software"] [role=alert]')?.textContent).toContain('Request denied'));
++  await vi.waitFor(() => expect(document.querySelector('[data-task="software"] [role=alert]')?.textContent).toContain('Unavailable'));
+   const mutation = fetcher.mock.calls.find(([path]) => path.endsWith('/prepare'))!;
+   expect(mutation[0]).toBe('/api/work/repositories/owner%2Fremote-zettel/approvals/prepare');
+   expect(JSON.parse((mutation as unknown as [string, RequestInit])[1].body as string)).toMatchObject({ runId: 'run-software' });
+diff --git a/tests/candidate-check-backend.test.py b/tests/candidate-check-backend.test.py
+index b9dd98c..55c8c67 100644
+--- a/tests/candidate-check-backend.test.py
++++ b/tests/candidate-check-backend.test.py
+@@ -94,6 +94,16 @@ class Tests(unittest.TestCase):
+         self.assertEqual(result['outcome'], 'succeeded')
+         self.assertEqual(result['outputHex'], '6f6b00')
+ 
++    def test_failed_check_keeps_complete_collected_output(self):
++        self.check()
++        manager = self.managers['check']
++        show = manager.show
++        manager.show = lambda run: {**show(run), 'ExecMainStatus': '1', 'Result': 'exit-code'}
++        result = self.ledger.inspect(self.run)
++        self.assertEqual(result['outcome'], 'failed')
++        self.assertEqual(result['outputHex'], '6f6b00')
++        self.assertIn('identity', result)
++
+     def test_capacity_denied_before_reservation(self):
+         self.backend.units['check'].max_runs = 0
+         self.assertEqual(self.ledger.reserve(self.run, self.binding), {'error': 'retention-limit'})
+diff --git a/tests/candidate-check-lifecycle.test.py b/tests/candidate-check-lifecycle.test.py
+index 2fab4cb..5792731 100644
+--- a/tests/candidate-check-lifecycle.test.py
++++ b/tests/candidate-check-lifecycle.test.py
+@@ -65,6 +65,18 @@ class Tests(unittest.TestCase):
+         self.assertEqual(self.ledger.reserve(self.run, self.binding), result)
+         self.assertEqual(len(self.backend.starts), 2)
+ 
++    def test_completed_failed_check_retains_output_for_human_review(self):
++        self.ledger.reserve(self.run, self.binding)
++        self.ledger.inspect(self.run)
++        self.backend.evidence['outcome'] = 'failed'
++        result = self.ledger.inspect(self.run)
++        self.assertEqual(result['outcome'], 'failed')
++        self.assertEqual(result['outputHex'], '610062')
++        receipt = {k: v for k, v in result.items() if k != 'outputHex'}
++        self.assertEqual(self.readonly_output(receipt), b'a\x00b')
++        self.restart()
++        self.assertEqual(self.readonly_output(receipt), b'a\x00b')
++
+     def test_uncertain_start_fences_replay_cancel_restart(self):
+         self.backend.fail = True
+         self.ledger.reserve(self.run, self.binding)
+diff --git a/tests/candidate-epoch-host-journals.test.ts b/tests/candidate-epoch-host-journals.test.ts
+index 451517b..2cdf725 100644
+--- a/tests/candidate-epoch-host-journals.test.ts
++++ b/tests/candidate-epoch-host-journals.test.ts
+@@ -24,7 +24,7 @@ const roots: string[] = [], services: SequentialPiWorkService[] = [];
+ afterEach(async () => { for (const service of services.splice(0)) service.close(); for (const root of roots.splice(0)) await rm(root, { recursive: true, force: true }); });
+ const hash = (s: string) => createHash('sha256').update(s).digest('hex');
+ const encode = (v: unknown) => Buffer.from(JSON.stringify(v));
+-async function fixture(candidate = false, retainedRoot?: string) {
++async function fixture(candidate = false, retainedRoot?: string, software = false) {
+   // Acquisition intentionally rejects world-writable /tmp ancestors.
+   const root = retainedRoot ?? await mkdtemp(join(process.env.EPOCH_TEST_ROOT ?? process.cwd(), '.epoch-real-host-'));
+   if (retainedRoot) await mkdir(root, { mode: 0o700 }); else roots.push(root);
+@@ -32,7 +32,8 @@ async function fixture(candidate = false, retainedRoot?: string) {
+   const faux = fauxProvider({ provider: 'openai', models: [{ id: 'gpt-6-astra' }] });
+   faux.setResponses(Array.from({ length: 8 }, () => fauxAssistantMessage('Done λ\n<script>inert</script>'))); runtime.registerNativeProvider(faux.provider);
+   const profile: PiWorkProfile = { admissionPolicy: 'continuation-v1', statePath: join(root, 'service.sqlite'), socketPath: join(root, 'host.sock'), supervisorSocket: '/fixture/control.sock', repository: 'owner/fixture', provider: 'openai', modelId: 'gpt-6-astra', checkCommand: 'true', timeoutMs: 5000, maxToolCalls: 6, maxTurns: 8,
+-    ...(candidate ? { candidateCheckProfile: supervisorCheckPolicyDigest('operator-policy', 'trusted-check'), candidateReviewProfile: 'f'.repeat(64) } : {}) };
++    ...(candidate ? { candidateCheckProfile: supervisorCheckPolicyDigest('operator-policy', 'trusted-check'), candidateReviewProfile: 'f'.repeat(64) } : {}),
++    ...(software ? { resourcePolicy: 'software-v1' as const, structuredInput: 'question-v1' as const, timeoutMs: 3000000 } : {}) };
+   const base = 'a'.repeat(40);
+   const captures = new Map<string, string>(), validations = new Map<string, string>(), checks = new Map<string, any>();
+   let failCheck = false, candidateCommand = 'trusted-check';
+@@ -163,6 +164,15 @@ function operationJoinFixture(f: Awaited<ReturnType<typeof fixture>>, acquired:
+   return { host, tables, operations, verify };
+ }
+ 
++test('software and structured-input profiles survive the complete acquired host-job round trip', async () => {
++  const f = await fixture(true, undefined, true), service = f.open(), run = f.request();
++  service.admit(run); await settle(service, run); service.close();
++  const job = f.job([run.id]), result = verifyHostJournalJob(job);
++  expect(JSON.parse(result.toString()).semantics).toEqual(f.verify(f.acquire([run.id])));
++  const checked = validateWireResult(job, result);
++  expect(checked.status, checked.stderr.toString()).toBe(0);
++});
++
+ for (const candidate of [false, true]) test(`real service journals/acquisition project exact ${candidate ? 'candidate review' : 'plain'} receipts and continuation`, async () => {
+   const f = await fixture(candidate), service = f.open(), parent = f.request();
+   service.admit(parent); await settle(service, parent);
+diff --git a/tests/candidate-epoch-review-content.test.ts b/tests/candidate-epoch-review-content.test.ts
+index e73c40e..2fe9d5f 100644
+--- a/tests/candidate-epoch-review-content.test.ts
++++ b/tests/candidate-epoch-review-content.test.ts
+@@ -17,6 +17,7 @@ function fixture() {
+ const verify = (v: unknown) => validateEpochReviewContent(Buffer.from(JSON.stringify(v)), binding);
+ test('strict review presentation accepts exact Git text, Unicode and BOM without stripping bytes', () => {
+   verify(fixture());
++  const link = fixture(); link.changes[0]!.after.mode = '120000'; verify(link);
+   const f = fixture(); f.changes = []; f.includedTextBytes = 0; verify(f);
+ });
+ test('rejects envelope, binding, text identity and accounting substitutions', () => {
+@@ -25,7 +26,7 @@ test('rejects envelope, binding, text identity and accounting substitutions', ()
+     f => f.binding.candidateTree = 'e'.repeat(40), f => f.binding.objectCount = 0, f => f.binding.expandedObjectBytes = -1,
+     f => f.includedTextBytes++, f => f.textComplete = false, f => f.changes[0].after.text += 'x',
+     f => f.changes[0].after.objectId = 'f'.repeat(40), f => f.changes[0].after.text = '\ud800',
+-    f => f.changes[0].after.text = '\x7f', f => f.changes[0].after.mode = '120000',
++    f => f.changes[0].after.text = '\x7f', f => f.changes[0].after.mode = '040000',
+     f => f.changes[0].change = 'deleted', f => f.changes[0].before = f.changes[0].after,
+     f => f.changes[0].after = null, f => f.checkOutput.extra = 1,
+   ];
+diff --git a/tests/candidate-epoch-supervisor-snapshot.test.ts b/tests/candidate-epoch-supervisor-snapshot.test.ts
+index d933d23..414a48d 100644
+--- a/tests/candidate-epoch-supervisor-snapshot.test.ts
++++ b/tests/candidate-epoch-supervisor-snapshot.test.ts
+@@ -304,6 +304,16 @@ test('check ledger binds retained output and all three backend invocations to ho
+   expect(result.unverifiedRoles).toContain('review-backends'); expect(encode([f.checks, f.checkBackend])).toEqual(before);
+ });
+ 
++test('completed failed checks retain verified output and match actual failed unit evidence', () => {
++  const f = checkFixture(); f.noConsumers(); f.result.outcome = 'failed'; f.syncCheck();
++  const row = f.checkBackend.tables.check_runs[0], evidence = JSON.parse(row.evidence);
++  evidence.outcome = 'failed'; evidence.exitCode = 1; evidence.result = 'exit-code'; row.evidence = JSON.stringify(evidence);
++  const result = f.verifyChecks().candidateChecks;
++  expect(JSON.parse(result.tables.checks![0]!.result as string).outcome).toBe('failed');
++  evidence.outcome = 'succeeded'; evidence.exitCode = 0; evidence.result = 'success'; row.evidence = JSON.stringify(evidence);
++  expect(() => f.verifyChecks()).toThrow('invocation mismatch');
++});
++
+ test('check outer-only reservations require explicit empty stores and cannot supply successful consumer receipts', () => {
+   const f = checkFixture(); f.checks.tables.checks = [];
+   for (const stage of ['preparation', 'check', 'collector']) f.checkBackend.tables[`${stage}_runs`] = [];
+@@ -540,7 +550,7 @@ for (const outcome of ['failed', 'interrupted']) test(`current candidate stages
+     f.candidate.phase = ['validation', 'check', 'checked', 'reviewed'][index];
+     if (index === 2) f.candidate.receipt = structuredClone(f.receipt);
+     if (index === 3) f.candidate.reviewReceipt = structuredClone(f.reviewReceipt);
+-    expect(() => f.verifyCandidates()).toThrow('upstream success');
++    expect(() => f.verifyCandidates()).toThrow('upstream result');
+   }
+ });
+ 
+diff --git a/tests/candidate-review-lifecycle.test.py b/tests/candidate-review-lifecycle.test.py
+index e6c5007..0beba54 100644
+--- a/tests/candidate-review-lifecycle.test.py
++++ b/tests/candidate-review-lifecycle.test.py
+@@ -134,6 +134,8 @@ class Tests(unittest.TestCase):
+         self.assertEqual(self.validate(value), value)
+         value['changes'][0]['after']['mode'] = '100755'
+         self.assertEqual(self.validate(value), value)
++        value['changes'][0]['after']['mode'] = '120000'
++        self.assertEqual(self.validate(value), value)
+ 
+     def test_strict_content_rejects_entry_substitutions(self):
+         mutations = [
+@@ -147,7 +149,7 @@ class Tests(unittest.TestCase):
+             lambda v: v['changes'][0]['after'].update(objectId='0' * 40),
+             lambda v: v['changes'][0]['after'].update(byteLength=True),
+             lambda v: v['changes'][0]['after'].update(text='different'),
+-            lambda v: v['changes'][0]['after'].update(mode='120000'),
++            lambda v: v['changes'][0]['after'].update(mode='040000'),
+             lambda v: v['changes'][0]['after'].update(kind='commit'),
+             lambda v: v.update(includedTextBytes=0),
+             lambda v: v.update(textComplete=False),
+diff --git a/tests/candidate-review.test.py b/tests/candidate-review.test.py
+index 484ab36..7aacc09 100644
+--- a/tests/candidate-review.test.py
++++ b/tests/candidate-review.test.py
+@@ -2,6 +2,7 @@
+ import base64
+ import hashlib
+ import importlib.util
++import json
+ import os
+ from pathlib import Path
+ import shutil
+@@ -100,7 +101,8 @@ class ReviewTests(unittest.TestCase):
+         self.export()
+         result = self.review()
+         changes = {c['pathText']: c for c in result['changes']}
+-        for name, reason in [('link', 'unsupported-file-type'), ('binary', 'binary-or-control-content'),
++        self.assertEqual(changes['link']['after']['text'], '/host-secret')
++        for name, reason in [('binary', 'binary-or-control-content'),
+                              ('invalid', 'non-utf8-content'), ('terminal', 'binary-or-control-content')]:
+             self.assertEqual(changes[name]['after']['state'], 'omitted')
+             self.assertEqual(changes[name]['after']['reason'], reason)
+@@ -108,6 +110,23 @@ class ReviewTests(unittest.TestCase):
+         self.assertFalse(result['textComplete'])
+         self.assertTrue(result['inventoryComplete'])
+ 
++    def test_deleted_symlink_shows_literal_target_without_reading_it(self):
++        secret = self.root / 'private-target'
++        secret.write_text('MUST_NOT_READ_TARGET_CONTENT')
++        (self.repo / 'result').symlink_to(secret)
++        self.git('add', '.')
++        self.git('commit', '-m', 'base with symlink')
++        self.base = self.git('rev-parse', 'HEAD').decode().strip()
++        (self.repo / 'result').unlink()
++        self.export()
++        result = self.review()
++        self.assertTrue(result['textComplete'])
++        change = next(c for c in result['changes'] if c['pathText'] == 'result')
++        self.assertEqual(change['before']['text'], str(secret))
++        self.assertEqual(change['before']['mode'], '120000')
++        self.assertIsNone(change['after'])
++        self.assertNotIn('MUST_NOT_READ_TARGET_CONTENT', json.dumps(result))
++
+     def test_lossless_hostile_names_and_inert_content(self):
+         names = [b'bad\xffname', b'line\nname', b'tab\tname', b'<img onerror=evil>']
+         for name in names:
+diff --git a/tests/epoch-check-files.test.py b/tests/epoch-check-files.test.py
+index 0ae1ed1..5cbf177 100644
+--- a/tests/epoch-check-files.test.py
++++ b/tests/epoch-check-files.test.py
+@@ -150,15 +150,15 @@ class CheckFilesTests(unittest.TestCase):
+             self.acquire()
+         self.assertEqual(self.managers['preparation'].starts, [])
+ 
+-    def test_unsuccessful_outputs_remain_classified(self):
++    def test_failed_checks_keep_verified_output_and_incomplete_checks_remain_classified(self):
+         for index, outcome in enumerate(('failed', 'overflow', 'cancelled', 'interrupted')):
+             if index:
+                 self.tearDown()
+                 self.setUp()
+             self.settle(outcome)
+             result = self.acquire()['checkFiles']
+-            self.assertEqual(result['verifiedCheckIds'], [])
+-            self.assertEqual(result['unsuccessfulChecks'], [dict(id=D, outcome='failed' if outcome in ('failed', 'overflow') else 'interrupted', retainedCollectorFiles=['output.bin', 'output.json'])])
++            self.assertEqual(result['verifiedCheckIds'], [D] if outcome == 'failed' else [])
++            self.assertEqual(result['unsuccessfulChecks'], [] if outcome == 'failed' else [dict(id=D, outcome='failed' if outcome == 'overflow' else 'interrupted', retainedCollectorFiles=['output.bin', 'output.json'])])
+ 
+     def test_preparation_failure_has_no_invented_check_or_collector_files(self):
+         self.request('check-candidate', operationId=D)
+diff --git a/tests/epoch-host-journals.test.py b/tests/epoch-host-journals.test.py
+index 06295b8..28e2fe0 100644
+--- a/tests/epoch-host-journals.test.py
++++ b/tests/epoch-host-journals.test.py
+@@ -105,10 +105,17 @@ class HostJournals(unittest.TestCase):
+         script = '''import {createHash} from 'node:crypto';
+         const [p,r] = JSON.parse(process.argv[1]);
+         const values=['pi-work-continuation-v1','minimal-supervisor-tools-v1',p.statePath,p.socketPath,p.supervisorSocket,p.repository,p.provider,p.modelId,p.checkCommand,p.timeoutMs,p.maxToolCalls,p.maxTurns];
+-        const binding={version:1,socket:p.supervisorSocket,run:r.id,base:r.baseCommit,repository:r.repository,request:r.request,provider:p.provider,model:p.modelId,check:p.checkCommand,timeoutMs:p.timeoutMs,maxToolCalls:p.maxToolCalls,maxTurns:p.maxTurns};
++        if(p.candidateCheckProfile) values.push('capture-validate-check-v1',p.candidateCheckProfile);
++        if(p.candidateReviewProfile) values.push('isolated-content-review-v1',p.candidateReviewProfile);
++        if(p.resourcePolicy) values.push('software-resource-policy-v1');
++        const binding={version:1,socket:p.supervisorSocket,run:r.id,base:r.baseCommit,repository:r.repository,...(p.resourcePolicy?{resourcePolicy:p.resourcePolicy}:{}),request:r.request,provider:p.provider,model:p.modelId,check:p.checkCommand,timeoutMs:p.timeoutMs,maxToolCalls:p.maxToolCalls,maxTurns:p.maxTurns};
++        if(p.candidateCheckProfile) Object.assign(binding,{candidatePolicy:'capture-validate-check-v1',candidateCheckProfile:p.candidateCheckProfile});
++        if(p.candidateReviewProfile) Object.assign(binding,{contentReviewPolicy:'isolated-content-review-v1',candidateReviewProfile:p.candidateReviewProfile});
+         console.log(JSON.stringify([createHash('sha256').update(JSON.stringify(values)).digest('hex'),JSON.stringify(binding)]));'''
+-        output = subprocess.run(['node', '--input-type=module', '-e', script, json.dumps([self.profile, self.run])], check=True, capture_output=True, text=True)
+-        self.assertEqual(json.loads(output.stdout), [self.digest, host.expected_binding(self.profile, self.run)])
++        software = dict(self.profile, resourcePolicy='software-v1', timeoutMs=3000000, candidateCheckProfile='c' * 64, candidateReviewProfile='d' * 64)
++        for profile in (self.profile, software):
++            output = subprocess.run(['node', '--input-type=module', '-e', script, json.dumps([profile, self.run])], check=True, capture_output=True, text=True)
++            self.assertEqual(json.loads(output.stdout), [host.profile_binding(profile), host.expected_binding(profile, self.run)])
+ 
+     def test_continuation(self):
+         child = dict(self.run, id=B, continuation=dict(parentRunId=A, feedback='Revise λ'))
+diff --git a/tests/epoch-review-inputs.test.py b/tests/epoch-review-inputs.test.py
+index abdcda7..75f2587 100644
+--- a/tests/epoch-review-inputs.test.py
++++ b/tests/epoch-review-inputs.test.py
+@@ -105,6 +105,13 @@ class ReviewInputsTests(unittest.TestCase):
+                 subprocess, 'run', side_effect=AssertionError('dispatched')):
+             self.assertEqual(binding, self.verify(result['acquisition']))
+ 
++    def test_failed_check_output_remains_bound_to_the_review_and_archive(self):
++        self.settle('failed')
++        result = self.acquire()
++        self.assertEqual(result['reviewInputs']['verifiedReviewInputIds'], [R])
++        self.assertEqual(result['reviewInputs']['verifiedReviewContentIds'], [R])
++        self.assertEqual(result['reviewInputs'], self.verify(result['acquisition']))
++
+     def test_no_review_and_outer_only_have_no_invented_inputs(self):
+         for outer in (False, True):
+             if outer:
+diff --git a/tests/pi-candidate-finalization.test.ts b/tests/pi-candidate-finalization.test.ts
+index 2237239..6e41f17 100644
+--- a/tests/pi-candidate-finalization.test.ts
++++ b/tests/pi-candidate-finalization.test.ts
+@@ -1,3 +1,4 @@
++import { captureTerminalPiJournal } from '../src/work/candidate-epoch-host-journals.ts';
+ import { createHash, randomUUID } from 'node:crypto';
+ import { mkdtemp, mkdir, chmod, writeFile, symlink, rm } from 'node:fs/promises';
+ import { createServer } from 'node:net';
+@@ -8,7 +9,7 @@ import { afterEach, expect, test, vi } from 'vitest';
+ import { ModelRuntime } from '@earendil-works/pi-coding-agent';
+ import { InMemoryCredentialStore, fauxProvider, fauxAssistantMessage } from '@earendil-works/pi-ai';
+ import { PiFixtureHost, type PiFixtureHostOptions } from '../src/work/pi-fixture-host.ts';
+-import { SequentialPiWorkService, executionProfile, capturePiObservation, type PiWorkProfile } from '../src/work/pi-work-service.ts';
++import { SequentialPiWorkService, executionProfile, capturePiObservation, type PiWorkProfile, type PiAdmission } from '../src/work/pi-work-service.ts';
+ import { PiWorkWorker } from '../src/work/pi-worker.ts';
+ import { listenPiWork } from '../src/work/pi-work-ipc.ts';
+ import { listenPiContent, piContentReader } from '../src/work/pi-content-ipc.ts';
+@@ -481,6 +482,39 @@ test.each(['capture', 'validate-capture', 'check-candidate', 'review-candidate']
+   expect(transport.mock.calls.at(-1)![0].action).toBe('cancel');
+ });
+ 
++test('software checks the frozen candidate once and still completes content review', async () => {
++  const f = await fixture(true);
++  const host = new PiFixtureHost({ ...f.options, resourcePolicy: 'software-v1' });
++  try {
++    const result = await host.run();
++    expect(result).toMatchObject({ state: 'settled', outcome: 'needs-review', candidate: { phase: 'reviewed' } });
++    expect(result.operations.map(op => op.key)).toEqual(['host:diff']);
++    expect(f.protocol.mock.calls.filter(([r]) => r.action === 'check-candidate')).toHaveLength(1);
++    expect(f.protocol.mock.calls.filter(([r]) => r.action === 'review-candidate')).toHaveLength(1);
++  } finally { host.close(); }
++});
++
++test('failed software checks still produce a reviewed candidate with the failure preserved', async () => {
++  const f = await fixture(true);
++  const transport = async (request: SupervisorRequest) => {
++    const result = await f.protocol(request);
++    if (request.action === 'check-candidate') { result.outcome = 'failed'; f.states.get(request.id)!.receipt = structuredClone(result); }
++    return result;
++  };
++  const host = new PiFixtureHost({ ...f.options, resourcePolicy: 'software-v1', transport });
++  try {
++    const result = await host.run();
++    expect(result).toMatchObject({ state: 'settled', outcome: 'needs-review', candidate: { phase: 'reviewed', receipt: { outcome: 'failed' } } });
++    expect(result.candidate!.reviewReceipt!.identity.checkReceipt.outcome).toBe('failed');
++    const profile: PiWorkProfile = { ...f.options, statePath: f.options.statePath, socketPath: '/fixture/host.sock', supervisorSocket: f.options.socketPath, admissionPolicy: 'continuation-v1', resourcePolicy: 'software-v1', timeoutMs: f.options.timeoutMs!, maxToolCalls: 10, maxTurns: 12 };
++    const run: PiAdmission = { id: f.options.runId, baseCommit: base, profile: executionProfile(profile), taskId: randomUUID(), revision: 'a'.repeat(64), repository: profile.repository, request: f.options.request };
++    const db = new DatabaseSync(f.options.statePath);
++    try { expect(captureTerminalPiJournal(String(db.prepare('SELECT record FROM host WHERE id=1').get()!.record), profile, run)).toEqual(result); }
++    finally { db.close(); }
++
++  } finally { host.close(); }
++});
++
+ test('journals review identity before dispatch and waits for validated review before finish', async () => {
+   const f = await fixture(true);
+   let inspected = false;
+diff --git a/tests/work-approval-decisions.test.ts b/tests/work-approval-decisions.test.ts
+index 57ce4e0..d76c06f 100644
+--- a/tests/work-approval-decisions.test.ts
++++ b/tests/work-approval-decisions.test.ts
+@@ -70,7 +70,7 @@ async function setup(enabled = true, objects?: { pack: Buffer; index: Buffer },
+ async function fresh() {
+   const task = await tasks.create(input), run = await coordinator!.queue(task.id, { revision: task.revision, previousRunId: null });
+   coordinator!.start();
+-  await vi.waitFor(async () => expect((await coordinator!.list()).runs?.find(r => r.id === run.id)?.status).toBe('needs-you'));
++  await vi.waitFor(async () => expect((await coordinator!.list()).runs?.find(r => r.id === run.id)?.status).toBe('needs-you'), { timeout: 3000 });
+   await coordinator!.close(); coordinator = reopen(!!(await hasDecisions()));
+   const prepared = await coordinator.prepareApprovalPackage(run.id, randomUUID());
+   const action = { requestId: randomUUID(), preparationId: prepared.id, token: prepared.token, packageDigest: prepared.package.digest, generation: prepared.generation };
+@@ -963,6 +963,8 @@ test.each([false, true])('SIGKILL dispatch intent committed=%s fences restart wi
+   expect(await coordinator.claimPublicationDispatch(f.expected!, orchestrationPin)).toBe(false);
+ });
+ 
++// Two durable publication cycles, a Python proxy and restart recovery share
++// the outer budget; individual completion deadlines remain bounded at 3s.
+ test.each(['normal', 'lost-dispatch-response', 'lost-writable-response', 'claim-before-ipc'] as const)(
+   'internal durable pump drives actual coordinator/owner transports (%s)', async scenario => {
+   const pack = Buffer.alloc(32, 1), index = Buffer.alloc(1072, 2), enrollment = publicationEnrollment();
+@@ -1067,7 +1069,7 @@ test.each(['normal', 'lost-dispatch-response', 'lost-writable-response', 'claim-
+     await Promise.all([dispatchListener.close(), outcomeListener.close(), retirementListener.close()]);
+     ackSource.close(); await delivery.close(); await ack.close();
+   }
+-});
++}, 20_000);
+ 
+ 
+ test('explicit agent delegation records its principal, rejects wire identities and pins policy across reopen', async () => {
+diff --git a/tests/work-approval-package.test.ts b/tests/work-approval-package.test.ts
+index 31088f7..4079133 100644
+--- a/tests/work-approval-package.test.ts
++++ b/tests/work-approval-package.test.ts
+@@ -117,7 +117,20 @@ test('all schema levels reject unknown/missing fields and old contracts', () =>
+   }
+ });
+ 
+-test('valid omissions are rejected even after exact receipt rehash; malformed content fails closed', () => {
++test('human review preserves failed checks in the approval snapshot; legacy policy still requires a pass', () => {
++  const { expected, evidence } = fixture();
++  evidence.checkReceipt.outcome = 'failed';
++  evidence.reviewReceipt.identity.checkReceipt = structuredClone(evidence.checkReceipt);
++  expected.promotionBinding.checkReceiptSha256 = digest(evidence.checkReceipt);
++  evidence.promotionReceipt.binding = structuredClone(expected.promotionBinding);
++  evidence.promotionReceipt.bindingSha256 = digest(expected.promotionBinding);
++  const pkg = buildApprovalPackage(expected, evidence);
++  expect(pkg.manifest.checkReceipt.outcome).toBe('failed');
++  expect(pkg.manifest.eligibilityPolicy).toBe('human-review-v2');
++  expect(() => buildApprovalPackage(expected, evidence, 'complete-text-v1')).toThrow(/passing checks/);
++});
++
++test('human review permits explicit omissions; legacy policy and malformed content remain rejected', () => {
+   for (const malformed of [false, true]) {
+     const { expected, evidence, content } = fixture();
+     if (malformed) content.changes[0]!.after.objectId = '0'.repeat(40);
+@@ -127,7 +140,11 @@ test('valid omissions are rejected even after exact receipt rehash; malformed co
+     }
+     evidence.reviewContent = Buffer.from(JSON.stringify(content));
+     evidence.reviewReceipt.contentSha256 = sha(evidence.reviewContent); evidence.reviewReceipt.contentBytes = evidence.reviewContent.length;
+-    expect(() => buildApprovalPackage(expected, evidence)).toThrow(malformed ? /object/ : /Omitted/);
++    if (malformed) expect(() => buildApprovalPackage(expected, evidence)).toThrow(/object/);
++    else {
++      expect(buildApprovalPackage(expected, evidence).manifest.eligibilityPolicy).toBe('human-review-v2');
++      expect(() => buildApprovalPackage(expected, evidence, 'complete-text-v1')).toThrow(/Omitted/);
++    }
+   }
+ });
+ 
+@@ -344,6 +361,19 @@ test('rejects file-backed MEMORY journaling and later durability downgrades', ()
+   } finally { db.close(); rmSync(root, { recursive: true, force: true }); }
+ });
+ 
++test('legacy package history keeps its original policy and digest on read and replay', () => {
++  const db = new DatabaseSync(':memory:');
++  try {
++    const store = new ApprovalPackageStore(db, 'a'.repeat(64)), { expected, evidence } = fixture(), id = randomUUID();
++    store.retain(id, expected, evidence);
++    const legacy = buildApprovalPackage(expected, evidence, 'complete-text-v1');
++    db.prepare('UPDATE work_approval_packages SET digest=?, manifest=? WHERE id=?')
++      .run(legacy.digest, canonicalPromotionJson(legacy.manifest), id);
++    expect(store.get(id)!.package).toEqual(legacy);
++    expect(store.retain(id, expected, evidence).package).toEqual(legacy);
++  } finally { db.close(); }
++});
++
+ test.each(['digest', 'manifest', 'task_document', 'review_content', 'check_output'])('package reads and replay deny retained %s corruption', column => {
+   const db = new DatabaseSync(':memory:');
+   try {
+diff --git a/tests/work-candidate-evidence.test.ts b/tests/work-candidate-evidence.test.ts
+index e3fbf7e..ff85be2 100644
+--- a/tests/work-candidate-evidence.test.ts
++++ b/tests/work-candidate-evidence.test.ts
+@@ -23,6 +23,7 @@ it('strictly captures workspace/profile/command-bound supervisor receipts', () =
+   const id = randomUUID(), value = receipt(id);
+   const expected = { workspaceId: id, baseCommit: base, profileId };
+   const captured = captureCandidateReceipt(value, expected);
++  expect(captureCandidateReceipt({ ...value, outcome: 'failed' }, expected).outcome).toBe('failed');
+   value.identity.binding.command = 'mutated';
+   expect(captured.identity.binding.command).toBe('trusted-check');
+   for (const mutate of [
+@@ -39,7 +40,7 @@ it('strictly captures workspace/profile/command-bound supervisor receipts', () =
+     (r: any) => r.outputBytes = 65537,
+     (r: any) => r.outputBytes = 1.5,
+     (r: any) => r.commandHash = '0'.repeat(64),
+-    (r: any) => r.outcome = 'failed',
++    (r: any) => r.outcome = 'cancelled',
+     (r: any) => r.reviewEligible = true,
+     (r: any) => r.outputHex = 'raw output',
+   ]) {
+diff --git a/tests/work-publication-authorization.test.ts b/tests/work-publication-authorization.test.ts
+index b57d31d..acd2e09 100644
+--- a/tests/work-publication-authorization.test.ts
++++ b/tests/work-publication-authorization.test.ts
+@@ -55,6 +55,20 @@ test.each(['task', 'output', 'content', 'manifestFlags', 'reviewFlags', 'checkFa
+   if (fault === 'extra') m.unboundDestination = 'elsewhere';
+   const wire = publicationEnvelope(f.authorization); expect(() => capturePublicationRelease(wire.bytes, wire.expected, f.enrollment)).toThrow();
+ });
++test('an exact human-review release preserves failed checks; legacy releases cannot authorize them', () => {
++  const f = publicationFixture(), m = f.authorization.manifest;
++  m.checkReceipt.outcome = 'failed';
++  m.reviewReceipt.identity.checkReceipt = structuredClone(m.checkReceipt);
++  m.expectations.promotionBinding.checkReceiptSha256 = publicationHash(m.checkReceipt);
++  m.promotionReceipt.binding = structuredClone(m.expectations.promotionBinding);
++  m.promotionReceipt.bindingSha256 = publicationHash(m.promotionReceipt.binding);
++  const wire = publicationEnvelope(f.authorization);
++  expect(capturePublicationRelease(wire.bytes, wire.expected, f.enrollment).authorization.manifest.checkReceipt.outcome).toBe('failed');
++  m.eligibilityPolicy = 'complete-text-v1';
++  const legacy = publicationEnvelope(f.authorization);
++  expect(() => capturePublicationRelease(legacy.bytes, legacy.expected, f.enrollment)).toThrow(/passing checks/);
++});
++
+ test('caller cannot substitute release IDs/digests even with an internally consistent envelope', () => {
+   const f = publicationFixture(), other = publicationFixture();
+   expect(() => capturePublicationRelease(other.bytes, f.expected, f.enrollment)).toThrow();

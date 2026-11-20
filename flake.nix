@@ -10,15 +10,15 @@
     };
     # Execution/publisher policy is enrolled independently of web application updates.
     remote-zettel-runtime = {
-      url = "path:/nix/store/a7wjp19i03dhwhnlfd5h3kmzm18xlgfi-remote-zettel-host-policy-source";
+      url = "path:/nix/store/agalarqc5d5idjwg8q81sil1wnxx86jg-source";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     remote-zettel-software = {
-      url = "path:/nix/store/a7wjp19i03dhwhnlfd5h3kmzm18xlgfi-remote-zettel-host-policy-source";
+      url = "path:/nix/store/agalarqc5d5idjwg8q81sil1wnxx86jg-source";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     remote-zettel-software-policy = {
-      url = "path:/nix/store/9p1l3n3jl21kskihcyb5hf03snbq5fvq-source";
+      url = "path:/nix/store/agalarqc5d5idjwg8q81sil1wnxx86jg-source";
       flake = false;
     };
     remote-zettel-software-source = {
