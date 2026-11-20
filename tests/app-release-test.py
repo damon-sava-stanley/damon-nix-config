@@ -83,6 +83,28 @@ class ProtectedSource(unittest.TestCase):
         self.assertEqual((source / '.git/refs/heads/publication-base').read_text(), manifest['newBase']+'\n')
         bootstrap.advance_bootstrap(host.upgrade.install, receipts, configuration, fixture / 'pack', manifest)
         self.assertEqual(before, subprocess.check_output([node, '--input-type=module', '-e', program, 'verify']))
+        # Reproduce the live failure: a running publisher keeps this ownership
+        # lock, so a second source-owner constructor must refuse. The restored
+        # source check must still succeed without borrowing that capability.
+        pin = base / 'source-pin.json'
+        pin.write_text(json.dumps({'configuration': configuration, 'policyDigest': before.decode()}))
+        pin.chmod(0o600)
+        host.upgrade.durable(receipts / 'source-policy.json', {'sha256': hashlib.sha256(pin.read_bytes()).hexdigest()})
+        holder_program = "import {ProtectedPublicationSource} from '"+application+"/src/work/publication-source-advance.js'; const owner=new ProtectedPublicationSource("+json.dumps(configuration)+"); process.stdout.write('locked\\n'); process.stdin.resume(); await new Promise(resolve=>process.stdin.once('end',resolve)); owner.close();"
+        holder = subprocess.Popen([node, '--input-type=module', '-e', holder_program], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        try:
+            self.assertEqual(holder.stdout.readline(), b'locked\n')
+            competing = subprocess.run([node, '--input-type=module', '-e', program, 'verify'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            self.assertNotEqual(competing.returncode, 0)
+            plan = {'sourcePin': str(pin), 'baseFile': str(state / 'base'), 'newBase': manifest['newBase'], 'sourceConfiguration': configuration}
+            operator.verify_restored_source(host.upgrade, plan, receipts)
+            with self.assertRaisesRegex(ValueError, 'Source pointers changed'):
+                operator.verify_restored_source(host.upgrade, dict(plan, newBase='0'*40), receipts)
+            pin.write_text('changed enrollment')
+            with self.assertRaisesRegex(ValueError, 'Source enrollment changed'):
+                operator.verify_restored_source(host.upgrade, plan, receipts)
+        finally:
+            holder.communicate(timeout=10)
 
     def test_existing_software_task_prevents_bootstrap(self):
         import shutil

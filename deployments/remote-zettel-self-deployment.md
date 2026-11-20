@@ -141,3 +141,21 @@ projection, not deployment authority. The observer stops after associated succes
 publication/deployment or two hours. Final verification independently compares the
 remote commit, protected advancing base, current/selected generation, immutable
 packaged revision, serving health and unchanged Work/controller contracts.
+
+### Source verification after publisher restart
+
+The initial release-test operator advanced the source to `b3e28ad` successfully,
+then failed at its second `--verify`: that commissioning verifier opens an exclusive
+source owner, while the restarted publisher already owns that lock. Web and software
+services were restored, but the deployment hold remained and no test was queued.
+
+The corrected operator retains the exact immutable plan
+`/nix/store/413w9mbh92h1226az9djbayrh52vfhwj-start-app-release-test-plan.json`.
+Exclusive commissioning verification still runs while owners are stopped. After
+restoration it instead checks service activity, the sealed source-pin byte digest
+and both exact source pointers, without creating a competing source owner. A root
+VM holds a real source owner to reproduce the old rejection, proves the non-owning
+check succeeds, and confirms changed pointers or pin bytes are refused. Existing
+source-ready/bootstrap receipts are reused; the fast-forward is not repeated.
+The corrected immutable operator is
+`/nix/store/4svd7xn3w483h7qwwfj3bl4acpwf9jbl-start-app-release-test/bin/start-app-release-test`.

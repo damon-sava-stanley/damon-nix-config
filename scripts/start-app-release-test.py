@@ -58,6 +58,17 @@ def release_fences(h, state, units):
             path.unlink()
     u.install.sync_dir(u.CONTROL)
 
+def verify_restored_source(u, p, state):
+    # The live publisher owns the source lock after restart. Verify the sealed
+    # pin and exact pointers without constructing a competing source owner.
+    pin = u.install.read_regular(Path(p['sourcePin']), 0, 65536)[0]
+    if hashlib.sha256(pin).hexdigest() != u.read(state / 'source-policy.json')['sha256']:
+        raise ValueError('Source enrollment changed after service restoration')
+    expected = (p['newBase'] + '\n').encode()
+    for path in (Path(p['baseFile']), Path(p['sourceConfiguration']['repository']) / '.git/refs/heads/publication-base'):
+        if u.install.read_regular(path, 0, 41)[0] != expected:
+            raise ValueError('Source pointers changed after service restoration')
+
 def main():
     if os.geteuid() != 0 or not sys.flags.isolated or len(sys.argv) != 2:
         raise ValueError('Root isolated immutable invocation required')
@@ -151,7 +162,8 @@ def main():
             u.run([p['systemctl'], 'start', *p['startUnits']], 180)
             command = [p['runuser'], '-u', 'remote-zettel', '--', p['workCli'], '--socket', p['controlSocket'], 'board']
             ready.wait_for_work_board(lambda seconds: ready.read_board_command(command, u.ENV, seconds), p['repositories'])
-            u.run([p['sourceVerifier'], '--verify'])
+            u.run([p['systemctl'], 'is-active', *p['startUnits']])
+            verify_restored_source(u, p, state)
             if u.read(hold) != marker:
                 raise ValueError('Independent maintenance hold replaced this attempt')
             hold.unlink(); u.install.sync_dir(hold.parent)
