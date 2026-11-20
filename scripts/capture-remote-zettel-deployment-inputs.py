@@ -26,3 +26,6 @@ for name,node in lock['nodes'].items():
  lines.append(nix(name)+' = '+entry+';')
 lines+=['};','}']
 pathlib.Path(sys.argv[2]).write_text('\n'.join(lines)+'\n')
+
+# Explicit dependency list permits pure evaluation of the capture package.
+pathlib.Path(sys.argv[2]).with_name("captured-sources.json").write_text(json.dumps(sorted(set(paths.values())), indent=2)+"\n")

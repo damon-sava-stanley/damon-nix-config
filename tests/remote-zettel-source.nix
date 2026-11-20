@@ -1,5 +1,5 @@
 # Operator tool acceptance against a real protected source in a disposable VM.
-{ pkgs, tool, baseCommit, sourceSnapshot ? null, runtimeSource ? null }:
+{ pkgs, tool, baseCommit, sourceSnapshot ? null, runtimeSource ? null, sourcePath ? "/var/lib/remote-zettel-software-source/sources/software-v1/source", sourceState ? "/var/lib/remote-zettel-software-source-state", sourcePolicy ? "/var/lib/remote-zettel-software-source-policy/source-pin.json" }:
 pkgs.testers.runNixOSTest {
   name = "work-software-source-commission";
   nodes.machine = { ... }: {
@@ -14,14 +14,14 @@ pkgs.testers.runNixOSTest {
     machine.wait_for_unit('multi-user.target')
     command = 'remote-zettel-software-commission-source --commission'
     machine.fail('runuser -u observer -- ' + command)
-    machine.fail('test -e /var/lib/remote-zettel-software-source')
+    machine.fail('test -e ${sourcePath}')
     machine.fail('remote-zettel-software-commission-source --verify')
-    machine.fail('test -e /var/lib/remote-zettel-software-source')
+    machine.fail('test -e ${sourcePath}')
     machine.succeed(command)
     machine.succeed('remote-zettel-software-commission-source --verify')
-    source = '/var/lib/remote-zettel-software-source/sources/software-v1/source'
-    state = '/var/lib/remote-zettel-software-source-state'
-    pin = '/var/lib/remote-zettel-software-source-policy/source-pin.json'
+    source = '${sourcePath}'
+    state = '${sourceState}'
+    pin = '${sourcePolicy}'
     assert machine.succeed('cat ' + state + '/base').strip() == '${baseCommit}'
     assert machine.succeed('cat ' + source + '/.git/refs/heads/publication-base').strip() == '${baseCommit}'
     assert machine.succeed('stat -c %u:%g:%a ' + source).strip() == '0:0:700'

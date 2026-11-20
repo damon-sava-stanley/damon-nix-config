@@ -7,7 +7,10 @@ let
   runtime = remote-zettel-software.outPath;
   package = remote-zettel-software.packages.${pkgs.stdenv.hostPlatform.system}.default;
   application = "${package}/lib/remote-zettel";
-  root = "/var/lib/remote-zettel-software-publication";
+  suffix = lib.optionalString (instance.epoch != null) "-${instance.epoch}";
+  generation = if instance.epoch == null then "software-publication-v1" else instance.epoch;
+  prefix = "remote-zettel-work-remote-zettel${suffix}-pub";
+  root = "/var/lib/remote-zettel-software-publication${suffix}";
   tools = pkgs.linkFarm "remote-zettel-software-publication-tools" (map (name: {
     inherit name; path = runtime + "/scripts/${name}";
   }) [ "publisher-candidate-promotion.py" "publisher-candidate-wire.py" "publisher-candidate-sandbox.py"
@@ -23,7 +26,7 @@ let
     user = "git"; repository = "/damon-sava-stanley/remote-zettel.git"; };
   ssh = pkgs.writeText "remote-zettel-software-publication-ssh.json" (builtins.toJSON {
     version = 1; kind = "ssh-publication-owner-config-v1"; inherit connection knownHosts;
-    credential = "${root}-key/identity"; publisherUid = 3311;
+    credential = "/var/lib/remote-zettel-software-publication-key/identity"; publisherUid = 3311;
     shell = "${pkgs.bash}/bin/sh"; python = "${pkgs.python3}/bin/python3";
     helper = "${tools}/ssh-publication-sandbox.py"; git = "${pkgs.git}/bin/git"; ssh = "${pkgs.openssh}/bin/ssh";
     passwd = pkgs.writeText "remote-zettel-software-publisher-passwd" "publisher:x:3311:3311:publisher:/tmp:/bin/sh\n";
@@ -34,10 +37,10 @@ let
   pin = import (runtime + "/nix/work-publication-ingestion-pin.nix") {
     inherit pkgs; app = application; tools = ingest.tools;
     enrollment = instance.plan.enrollment; repository = instance.repository;
-    repositoryId = "remote-zettel"; generation = "software-publication-v1";
+    repositoryId = "remote-zettel"; inherit generation;
     directory = "${root}/ingestion";
     importerUser = "rzwi-remote-zettel-importer"; importerUid = 3310; importerGid = 3313;
-    endpoint = "/run/remote-zettel-work-remote-zettel-pub-bundle/read.sock";
+    endpoint = "/run/${prefix}-bundle/read.sock";
     serverUid = instance.identities.host.uid;
   };
   publication = {
@@ -54,8 +57,8 @@ let
     publisherConfigurationFile = "${root}/config/operator.json";
     publisherStorePath = "${root}/publisher/state.sqlite";
     approvalConfigurationFile = "${root}/config/approval.json";
-    sourceStateDirectory = "/var/lib/remote-zettel-software-source-state";
-    acknowledgmentSourceDigest = builtins.hashString "sha256" "remote-zettel-software-publication-acknowledgment-v1";
+    sourceStateDirectory = builtins.dirOf instance.baseCommitFile;
+    acknowledgmentSourceDigest = builtins.hashString "sha256" "remote-zettel-software-publication-acknowledgment:${generation}";
     sshConfigurationFile = toString ssh;
   };
   plan = import (runtime + "/nix/work-repository-publication.nix") {
@@ -64,7 +67,7 @@ let
     config = builtins.removeAttrs publication [ "enable" "package" "runtimeSource" ];
     clientUid = config.users.users.remote-zettel.uid;
   };
-  reusable = plan.topology // { sourcePin = "/var/lib/remote-zettel-software-source-policy/source-pin.json"; };
+  reusable = plan.topology // { sourcePin = "/var/lib/remote-zettel-software-source-policy${suffix}/source-pin.json"; };
   access = { issuer = "https://${app.cloudflareAccess.teamDomain}"; inherit (app.cloudflareAccess) audience; };
   commissioner = import (runtime + "/nix/work-publication-commission.nix") {
     inherit pkgs access reusable; app = application;
@@ -75,7 +78,7 @@ let
   };
   commissionPlan = pkgs.writeText "remote-zettel-software-publication-plan.json" (builtins.toJSON {
     version = 1; inherit root access connection knownHosts reusable;
-    repository = instance.repository; repositoryId = "remote-zettel"; generation = "software-publication-v1";
+    repository = instance.repository; repositoryId = "remote-zettel"; inherit generation;
     enrollment = instance.plan.enrollment; ingestionPin = "${pin}/pin.json";
     sshConfiguration = ssh;
     commissioner = "${commissioner}/bin/work-publication-commission";

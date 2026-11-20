@@ -10,11 +10,11 @@
     };
     # Execution/publisher policy is enrolled independently of web application updates.
     remote-zettel-runtime = {
-      url = "git+ssh://git@github.com/damon-sava-stanley/remote-zettel.git?rev=c583003a20c795557a6edeac4b530aca7bbb08ed";
+      url = "path:/nix/store/a7wjp19i03dhwhnlfd5h3kmzm18xlgfi-remote-zettel-host-policy-source";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     remote-zettel-software = {
-      url = "git+ssh://git@github.com/damon-sava-stanley/remote-zettel.git?rev=15edcc27575cbd703aa6c49853d759dcc81da4e4";
+      url = "path:/nix/store/a7wjp19i03dhwhnlfd5h3kmzm18xlgfi-remote-zettel-host-policy-source";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     remote-zettel-software-policy = {
@@ -77,6 +77,14 @@
     in
     {
       packages.${system} = {
+        capture-deployment-host = import ./deployment/capture.nix { inherit pkgs; };
+        resume-host-deployment = import ./modules/nixos/remote-zettel-deployment-resume-operator.nix {
+          inherit pkgs; targetConfig = self.nixosConfigurations.deeley.config;
+        };
+        # Retain the original one-time transition and its exact provisional target.
+        migrate-host-policy = pkgs.writeShellScriptBin "migrate-host-policy" ''
+          exec ${builtins.appendContext "/nix/store/5pncgmmggr3ghdyj5ckkcy5aq4a4dhcs-migrate-host-policy" { "/nix/store/5pncgmmggr3ghdyj5ckkcy5aq4a4dhcs-migrate-host-policy" = { path = true; }; }}/bin/migrate-host-policy "$@"
+        '';
         initialize-remote-zettel-deployment = self.nixosConfigurations.deeley.config.system.build.remoteZettelSelfDeploymentInitialize;
         enroll-remote-zettel = import ./modules/nixos/remote-zettel-enrollment-operator.nix {
           inherit pkgs;
@@ -95,6 +103,7 @@
           remote-zettel-software.nixosModules.default
           remote-zettel-software.nixosModules.work-repository-instances
           ./hosts/deeley
+          ./deployment/host-policy-transition.nix
           home-manager.nixosModules.home-manager
           {
             nixpkgs.config.allowUnfreePredicate =
@@ -134,6 +143,9 @@
       };
 
       checks.${system} = {
+        remote-zettel-deployment-resume = import ./tests/resume-host-deployment.nix {
+          inherit pkgs; targetConfig = self.nixosConfigurations.deeley.config;
+        };
         remote-zettel-private-deployment = pkgs.runCommandLocal "private-deployment-source-tests" {} ''
           export REMOTE_ZETTEL_DEPLOYMENT_SOURCE=${remote-zettel-software.outPath}
           export REMOTE_ZETTEL_PRIVATE_ADAPTER=${./scripts/remote-zettel-private-deployment.py}
@@ -150,6 +162,7 @@
           }).config;
         in import ./tests/remote-zettel-self-deployment.nix {
           inherit pkgs; systemConfig = self.nixosConfigurations.deeley.config;
+          deploymentHeld = false;
           variants = map variant [ "0000000000000000000000000000000000000000" "1111111111111111111111111111111111111111" ];
         };
         remote-zettel-enrollment = import ./tests/remote-zettel-enrollment.nix { inherit pkgs; };
@@ -157,6 +170,9 @@
           inherit pkgs;
           tool = self.nixosConfigurations.deeley.config.system.build.remoteZettelSoftwareSourceCommission;
           baseCommit = self.nixosConfigurations.deeley.config.services.remote-zettel.repositoryInstances.remote-zettel.baseCommit;
+          sourcePath = self.nixosConfigurations.deeley.config.services.remote-zettel.repositoryInstances.remote-zettel.sourceRepository;
+          sourceState = builtins.dirOf self.nixosConfigurations.deeley.config.services.remote-zettel.repositoryInstances.remote-zettel.baseCommitFile;
+          sourcePolicy = "/var/lib/remote-zettel-software-source-policy-host-20261119/source-pin.json";
           sourceSnapshot = remote-zettel-software-source.outPath;
           runtimeSource = remote-zettel-software-policy.outPath;
         };

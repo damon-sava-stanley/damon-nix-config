@@ -1,7 +1,8 @@
 # Independently pinned private-source adapter, with credentials only for prefetch.
 { pkgs, runtimeSource, buildFile, sshConfigurationFile, target, repository
 , sourceUrl ? "https://github.com/${repository}.git"
-, service ? "remote-zettel.service", healthPort ? 3210, healthTimeoutSeconds ? 30 }:
+, service ? "remote-zettel.service", healthPort ? 3210, healthTimeoutSeconds ? 30
+, stateDirectory ? "/var/lib/remote-zettel-self-deployment/nixos-generations" }:
 let
   file = toString buildFile;
   root = builtins.match "(/nix/store/[0-9abcdfghijklmnpqrsvwxyz]{32}-[A-Za-z0-9+._=-]+)(/.*)?" file;
@@ -11,7 +12,7 @@ let
     version = 1; inherit target repository service healthPort healthTimeoutSeconds;
     inherit sourceUrl;
     buildFile = retainedFile;
-    stateDirectory = "/var/lib/remote-zettel-self-deployment/nixos-generations";
+    inherit stateDirectory;
     nix = "${pkgs.nix}/bin/nix"; nixEnv = "${pkgs.nix}/bin/nix-env";
     nixStore = "${pkgs.nix}/bin/nix-store"; git = "${pkgs.git}/bin/git";
     systemctl = "${pkgs.systemd}/bin/systemctl";

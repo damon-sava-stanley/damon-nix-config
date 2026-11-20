@@ -1,7 +1,14 @@
 # Deeley approved application deployment
 
-Status: software publisher commissioned; final host and restricted source-build
-validated. Initial journal commissioning and live activation are the next steps.
+Status (2026-11-19): the original publisher and deployment journals are already
+commissioned. A host update exposed incompatible Work/controller policy changes.
+The selected profile and boot default were reconciled to the running generation;
+the fresh-board migration, fresh-journal commissioning and refreshed-host activation
+completed successfully. Automatic deployment and its status proxy are active,
+the recovery-hold condition passes, and the live application is healthy.
+Follow [host update migration](host-update-migration.md) for the current transition.
+The initial activation section below records the original rollout and must not be
+used to reinitialize existing stores.
 
 Remote Zettel execution is enrolled beside stories. An approved, successfully
 published Work candidate can be deployed automatically. The independent bridge
@@ -25,7 +32,7 @@ use, prompts and user SSH configuration, and uses pinned GitHub trust and addres
 The build/evaluation commands receive no SSH credential environment. Candidate
 builds remain inside Nix's sandbox with separate build users.
 
-The existing stories writer bundle and software execution policy are unchanged.
+The original rollout kept the stories writer bundle and software execution policy unchanged.
 The one-time source bootstrap advanced the unused software source from `15edcc2`
 to `78e91bf`, retaining prior objects, source identity and explicit receipts. It
 refuses task documents, observed task history, runs, identity conflicts, unknown

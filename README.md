@@ -55,11 +55,15 @@ sudo nixos-enter --root /mnt -c 'passwd damon'
 The second command sets the initial login password without storing it in Git or
 the world-readable Nix store.
 
-After installation, use:
+After installation, use the guarded installer:
 
 ```console
-sudo nixos-rebuild switch --flake .#deeley
+./install.sh --check
+./install.sh
 ```
+
+It builds before sudo and rejects known enrolled-policy conflicts before selecting
+a system profile. See [host updates and policy migration](deployments/host-update-migration.md).
 
 The first graphical login appears through tuigreet. In niri, use
 `Super+Return` for Ghostty, `Super+D` for fuzzel, `Super+B` for Brave, and
@@ -208,10 +212,10 @@ to dictate's USB/Bluetooth/digital/analog priority; use `dictate
 
 ## Install from an existing NixOS system
 
-From the repository checkout, copy the configuration into `/etc/nixos`, replace
-the placeholder with the machine's generated hardware configuration, verify
-that it builds, and activate it:
+From the repository checkout, verify that the hardware configuration matches this
+machine, build and inspect the target, then activate the exact checked target:
 
 ```console
+./install.sh --check
 ./install.sh
 ```

@@ -4,8 +4,12 @@ let
   app = config.services.remote-zettel;
   publication = app.repositoryInstances.remote-zettel.publication.plan;
   buildFile = app.selfDeployment.nixos.buildFile;
+  generation = lib.optionalString (app.selfDeployment.stateGeneration != null) "-${app.selfDeployment.stateGeneration}";
+  controllerState = "/var/lib/remote-zettel-self-deployment${generation}";
+  deliveryState = "/var/lib/remote-zettel-deployment-delivery${generation}";
   adapter = import ./remote-zettel-private-deployment-adapter.nix {
     inherit pkgs buildFile;
+    stateDirectory = "${controllerState}/nixos-generations";
     runtimeSource = remote-zettel-software.outPath;
     sshConfigurationFile = app.repositoryInstances.remote-zettel.publication.sshConfigurationFile;
     target = "deeley"; repository = "damon-sava-stanley/remote-zettel";
@@ -15,6 +19,7 @@ let
 in {
   imports = [ remote-zettel-software.nixosModules.self-deployment ];
   nix.settings.build-users-group = lib.mkDefault "nixbld";
+  system.build.remoteZettelPrivateDeploymentAdapter = adapter;
   assertions = [
     { assertion = config.nix.settings.sandbox && !lib.elem config.nix.settings.build-users-group [ "" "root" ];
       message = "Private self deployment requires sandboxed builds and separate build users."; }
@@ -24,7 +29,7 @@ in {
   system.build.remoteZettelSelfDeploymentInitialize = pkgs.writeShellScriptBin "initialize-remote-zettel-deployment" ''
     set -euo pipefail
     test "$EUID" = 0 || { echo 'Root commissioning required' >&2; exit 1; }
-    for path in /var/lib/remote-zettel-self-deployment /var/lib/remote-zettel-deployment-delivery; do
+    for path in ${controllerState} ${deliveryState}; do
       if test -L "$path"; then echo 'Symlinked deployment state refused' >&2; exit 1; fi
       if test -e "$path"; then
         test "$(${pkgs.coreutils}/bin/stat -c %u:%g:%a "$path")" = 0:0:700 || { echo 'Unprotected deployment state refused' >&2; exit 1; }
@@ -32,7 +37,7 @@ in {
         ${pkgs.coreutils}/bin/install -d -m 0700 "$path"
       fi
     done
-    for file in /var/lib/remote-zettel-self-deployment/state.sqlite /var/lib/remote-zettel-deployment-delivery/delivery.sqlite; do
+    for file in ${controllerState}/state.sqlite ${deliveryState}/delivery.sqlite; do
       test ! -e "$file" && test ! -L "$file" || { echo 'Existing deployment journals: inspect without resetting them' >&2; exit 1; }
     done
     ${app.selfDeployment.automatic.initializeCommand}

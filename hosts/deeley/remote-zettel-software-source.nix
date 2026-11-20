@@ -1,11 +1,13 @@
 # Explicit create-only source commissioning. No service switch or credentials.
-{ pkgs, remote-zettel-software, remote-zettel-software-source, ... }:
+{ config, lib, pkgs, remote-zettel-software, remote-zettel-software-source, ... }:
 let
   app = remote-zettel-software.packages.${pkgs.stdenv.hostPlatform.system}.default;
   snapshot = remote-zettel-software-source.outPath;
-  source = "/var/lib/remote-zettel-software-source/sources/software-v1/source";
-  state = "/var/lib/remote-zettel-software-source-state";
-  policy = "/var/lib/remote-zettel-software-source-policy";
+  instance = config.services.remote-zettel.repositoryInstances.remote-zettel;
+  suffix = lib.optionalString (instance.epoch != null) "-${instance.epoch}";
+  source = instance.sourceRepository;
+  state = builtins.dirOf instance.baseCommitFile;
+  policy = "/var/lib/remote-zettel-software-source-policy${suffix}";
   initialize = pkgs.writeText "remote-zettel-software-source-commission.mjs" ''
     import { createHash } from 'node:crypto';
     import { constants, fsyncSync, openSync, closeSync, writeFileSync, lstatSync, fstatSync, readFileSync } from 'node:fs';

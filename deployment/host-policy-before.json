@@ -1,0 +1,518 @@
+{
+  "bridge": {
+    "controllerConfigurationFile": "/nix/store/42zm796xj6d5ywcir02r0dvz60srrp6k-remote-zettel-self-deployment.json",
+    "controllerPython": "/nix/store/kp6p38x6zb21n7gdlnp9nsm2aagq7sg2-python3-3.13.17/bin/python3",
+    "controllerScript": "/nix/store/sqf7r2flbdgjyb9f8iyzlmjv4drg9qic-source/scripts/work-deployment-controller.py",
+    "controllerStateDirectory": "/var/lib/remote-zettel-self-deployment",
+    "deliveryStatePath": "/var/lib/remote-zettel-deployment-delivery/delivery.sqlite",
+    "owner": {
+      "destinationPolicyDigest": "35c7f1198f797f7ce1be9072ea44f5e10cd0a47787438465e7902ce29a0d6fbd",
+      "generation": "software-publication-v1",
+      "kind": "publication-owner-policy-v1",
+      "objectSourceDigest": "992a5517789c74b28a7265a0e2cf5e6a28bb249a4031ef75e7f773018175535f",
+      "publicationPolicyDigest": "df555a82ac3c12c8b5907159c79d01fc54fb5e70fcac1aa07189c6e35e8cad26",
+      "racePolicy": "observed-base-nonforce-v1",
+      "ref": "refs/heads/main",
+      "repositoryId": "remote-zettel",
+      "runtimePolicyDigest": "c982c51f0582710d9768dec3a60db841f69f6b002c145b102632be39fde11f75",
+      "version": 1
+    },
+    "pollIntervalSeconds": 5,
+    "publication": {
+      "ownerPolicyDigest": "4f452e6463db529b3b1a5add7ba6f151d246aaf12099a16f5573347a1cd53534",
+      "publication": {
+        "candidateSourceId": "5dbdf40c7d4efa6f6878405b22240edee2b8b3a26b54c6a34db0cce6e8e03947",
+        "checkPolicyDigest": "58055e12320d803cf00bccd7fbe6d916a96aeed5ade0c7bcd14dd4bb25dc71a9",
+        "contentSourceId": "376c8f2920c03a3b411bcbaf3e5d7ba46528c191139e10f2ba0aec82356b485c",
+        "destinationPolicyDigest": "35c7f1198f797f7ce1be9072ea44f5e10cd0a47787438465e7902ce29a0d6fbd",
+        "executionProfileDigest": "7fdc2696e872f60346a94652eb83cef1e69c8631ffff808929d98416a668349b",
+        "generation": "software-publication-v1",
+        "human": {
+          "authentication": "cloudflare-access",
+          "issuer": "https://late-thunder-9219.cloudflareaccess.com",
+          "subjects": [
+            "9d599c1a-97f1-5159-a7ac-785ff4539de9"
+          ]
+        },
+        "kind": "snapshot-publication-enrollment-v1",
+        "promotionPolicyDigest": "44e4c9059878dd3a25b37c3b58f9e910e427c7460e81092dfd4341519215eaa5",
+        "publicationPolicyDigest": "df555a82ac3c12c8b5907159c79d01fc54fb5e70fcac1aa07189c6e35e8cad26",
+        "racePolicy": "observed-base-nonforce-v1",
+        "repository": "damon-sava-stanley/remote-zettel",
+        "repositoryId": "remote-zettel",
+        "reviewPolicyDigest": "4f1facbd874b0d76da80bfa57b7ace1a4476502099b58367261e55279adb6dce",
+        "sourceId": "777f83c06e0315ed8f57b56709e5ef6c4aa713395ba3d272cacde4d0bc8ebf8d",
+        "version": 1
+      },
+      "publisherId": "960f6f39400184d47beb00744fe9fe96c18cb5bb48b0b92afc9708dabac08e92"
+    },
+    "publisherSocket": "/run/remote-zettel-work-remote-zettel-pub-owner/read.sock",
+    "repository": "damon-sava-stanley/remote-zettel",
+    "statusSocketPath": "/run/remote-zettel-self-deployment/status.sock",
+    "target": "deeley",
+    "version": 1
+  },
+  "controller": {
+    "adapterCommand": "/nix/store/p1186k0kwqhcdq50nxsh836yxi4dgavf-remote-zettel-private-nixos-adapter/bin/remote-zettel-private-nixos-adapter",
+    "commandTimeoutSeconds": 1800,
+    "repository": "damon-sava-stanley/remote-zettel",
+    "target": "deeley",
+    "verifierCommand": "/nix/store/kv3k0k34c806qvv7qkib58wa78vmpsf1-remote-zettel-deployment-verifier/bin/remote-zettel-deployment-verifier",
+    "version": 1
+  },
+  "generation": {
+    "admissionControl": true,
+    "bundle": "/nix/store/p12n3rvljxbivvbmy393xkp6cr4yawlg-epoch-agent-approval-v1-writer-definitions",
+    "epoch": "agent-approval-v1",
+    "identities": {
+      "groups": {
+        "agent": 981,
+        "remote-zettel": 984,
+        "remote-zettel-work": 980,
+        "remote-zettel-work-bundle": 3208,
+        "remote-zettel-work-check": 3203,
+        "remote-zettel-work-host": 979,
+        "remote-zettel-work-review": 3204
+      },
+      "users": {
+        "agent": 988,
+        "remote-zettel": 989,
+        "remote-zettel-work-check": 3203,
+        "remote-zettel-work-host": 987,
+        "remote-zettel-work-importer": 3202,
+        "remote-zettel-work-review": 3204
+      }
+    },
+    "repository": "damon-sava-stanley/ssdamon-stories",
+    "retired": {
+      "publication-v2": "/nix/store/c75zkanwrvzflbwrns8dsski05m94grn-epoch-publication-v2-writer-definitions",
+      "task-lifecycle-v1": "/nix/store/v2drdvm9w6rksnh4nwifsyp8yqclg4wr-epoch-task-lifecycle-v1-writer-definitions"
+    },
+    "role": "work-epoch-generation",
+    "shared": {
+      "documents": "/home/damon/Dropbox/agent-workspace-agent-approval-v1",
+      "owner": "damon",
+      "state": "/var/lib/remote-zettel/work/agent-approval-v1/state.sqlite",
+      "zettel": "/home/damon/Dropbox/000_zettelkasten"
+    },
+    "version": 1
+  },
+  "instances": {
+    "remote-zettel-work-instance-remote-zettel": {
+      "enrollment": {
+        "baseCommitFile": "/var/lib/remote-zettel-software-source-state/base",
+        "bundle": {
+          "socketPath": "/var/lib/remote-zettel-work-instance-remote-zettel-host/bundle.sock",
+          "supervisorServerUid": 0,
+          "supervisorSocket": "/run/remote-zettel-work-instance-remote-zettel-executor/bundle.sock"
+        },
+        "checkoutRepository": "/var/lib/remote-zettel-software-source/sources/software-v1/source",
+        "content": {
+          "frontendSocket": "/run/remote-zettel-work-instance-remote-zettel-content/read.sock",
+          "serverUid": 3301,
+          "socketPath": "/var/lib/remote-zettel-work-instance-remote-zettel-host/content.sock",
+          "transport": "uid-proxy-v1"
+        },
+        "frontendServerUid": 3301,
+        "frontendSocket": "/run/remote-zettel-work-instance-remote-zettel/control.sock",
+        "profile": {
+          "admissionPolicy": "continuation-v1",
+          "candidateCheckProfile": "58055e12320d803cf00bccd7fbe6d916a96aeed5ade0c7bcd14dd4bb25dc71a9",
+          "candidateReviewProfile": "4f1facbd874b0d76da80bfa57b7ace1a4476502099b58367261e55279adb6dce",
+          "checkCommand": "/nix/store/kp6p38x6zb21n7gdlnp9nsm2aagq7sg2-python3-3.13.17/bin/python3 -I /nix/store/6s52idwc5hz5m5yd7g6c4rcwbydnxgck-check-software-candidate.py --node /nix/store/709kghqbswlhrfshjmrh9sn566gjbwdd-nodejs-24.22.1/bin/node --modules /nix/store/cychhrdi2czqjx6nvl5qsqz8q6k152vg-remote-zettel-work-software-dependencies-1/node_modules --scratch-root /software-check --lock-sha256 386596db20c73d16ceeb18a42e3a41e6b31036beee4e36418376a344ccbd95b9 --tool-path /nix/store/709kghqbswlhrfshjmrh9sn566gjbwdd-nodejs-24.22.1/bin:/nix/store/pgajsfrg5yz7bvxdrh9jc7zfs8yizf0v-git/bin:/nix/store/kp6p38x6zb21n7gdlnp9nsm2aagq7sg2-python3-3.13.17/bin:/nix/store/13czpvp88x852739v5xi04s871pn35b5-bash-interactive-5.3p9/bin:/nix/store/kwc34h21my8mf7xbqm9gxs1xfx07xb4i-coreutils-9.11/bin:/nix/store/nrwm8jdinz195hbn3yw67nn2hrkaizn5-poppler-utils-26.10.0/bin --even-lock-sha256 17214e60f93e9b4e0376831cf74eabb8b8c5f0dc12805a2117318561bbcdd796",
+          "maxToolCalls": 6,
+          "maxTurns": 8,
+          "modelId": "gpt-6-astra",
+          "provider": "openai",
+          "repository": "damon-sava-stanley/remote-zettel",
+          "resourcePolicy": "software-v1",
+          "socketPath": "/var/lib/remote-zettel-work-instance-remote-zettel-host/host.sock",
+          "statePath": "/var/lib/remote-zettel-work-instance-remote-zettel-host/admission.sqlite",
+          "supervisorSocket": "/run/remote-zettel-work-instance-remote-zettel-executor/control.sock",
+          "timeoutMs": 3000000
+        }
+      },
+      "state": {
+        "directories": [
+          {
+            "gid": 3301,
+            "mode": 448,
+            "path": "/var/lib/remote-zettel-work-instance-remote-zettel-host",
+            "uid": 3301
+          },
+          {
+            "gid": 0,
+            "mode": 448,
+            "path": "/var/lib/remote-zettel-work-instance-remote-zettel-executor",
+            "uid": 0
+          },
+          {
+            "gid": 0,
+            "mode": 493,
+            "path": "/var/lib/remote-zettel-work-instance-remote-zettel-executor-root",
+            "uid": 0
+          },
+          {
+            "gid": 3302,
+            "mode": 448,
+            "path": "/var/lib/remote-zettel-work-instance-remote-zettel-scratch",
+            "uid": 3302
+          },
+          {
+            "gid": 0,
+            "mode": 493,
+            "path": "/var/lib/remote-zettel-work-instance-remote-zettel-empty-zettel",
+            "uid": 0
+          },
+          {
+            "gid": 0,
+            "mode": 448,
+            "path": "/var/lib/remote-zettel-work-instance-remote-zettel-broker-root",
+            "uid": 0
+          }
+        ],
+        "policyDigest": "96c830c6643f19381d8b97ce6a56aafb9355861f366ba4fa91b4f5e27c9ed98b",
+        "policyDirectory": "/var/lib/remote-zettel-work-instance-remote-zettel-policy",
+        "sourceRepository": "/var/lib/remote-zettel-software-source/sources/software-v1/source",
+        "version": 1
+      }
+    }
+  },
+  "oldUnits": [
+    "remote-zettel-work-instance-remote-zettel-proxy.service",
+    "remote-zettel-work-instance-remote-zettel-executor-check-capture@.service",
+    "remote-zettel-work-epoch-agent-approval-v1-namespace-proxy.service",
+    "remote-zettel-work-instance-remote-zettel-executor-check@.service",
+    "remote-zettel-work-epoch-agent-approval-v1-namespace-executor-check-candidate-preparation@.service",
+    "remote-zettel-work-remote-zettel-pub-ingestion.service",
+    "remote-zettel-work-remote-zettel-pub-owner.service",
+    "remote-zettel-work-epoch-agent-approval-v1-namespace-executor-supervisor.service",
+    "remote-zettel-work-instance-remote-zettel-executor-supervisor.service",
+    "remote-zettel-work-instance-remote-zettel-executor-check-candidate-collector@.service",
+    "remote-zettel-work-remote-zettel-pub-acknowledgment.service",
+    "remote-zettel-work-epoch-agent-approval-v1-namespace-operator.service",
+    "remote-zettel-work-epoch-agent-approval-v1-namespace-bundle-proxy.service",
+    "remote-zettel-work-epoch-agent-approval-v1-namespace-executor-check-operation@.service",
+    "remote-zettel-work-instance-remote-zettel-policy-check@.service",
+    "remote-zettel-work-epoch-agent-approval-v1-namespace-executor-check@.service",
+    "remote-zettel-work-remote-zettel-pub-release.service",
+    "remote-zettel-work-epoch-agent-approval-v1-namespace-executor-check-review-collector@.service",
+    "remote-zettel-work-instance-remote-zettel-executor-check-validation@.service",
+    "remote-zettel-work-epoch-agent-approval-v1-namespace-executor-check-capture@.service",
+    "remote-zettel-work-remote-zettel-pub-dispatch.service",
+    "remote-zettel-work-remote-zettel-pub-outcome.service",
+    "remote-zettel-work-instance-remote-zettel-content-proxy.service",
+    "remote-zettel-work-instance-remote-zettel-executor-check-operation@.service",
+    "remote-zettel-work-epoch-agent-approval-v1-namespace-content-proxy.service",
+    "remote-zettel-work-epoch-agent-approval-v1-namespace-host.service",
+    "remote-zettel-work-instance-remote-zettel-host.service",
+    "remote-zettel-work-remote-zettel-pub-automation-outcome.service",
+    "remote-zettel-work-instance-remote-zettel-executor-check-review-collector@.service",
+    "remote-zettel-work-instance-remote-zettel-repository-read.service",
+    "remote-zettel-work-instance-remote-zettel-prepare.service",
+    "remote-zettel-work-remote-zettel-pub-bundle.service",
+    "remote-zettel-work-epoch-agent-approval-v1-namespace-executor-check-candidate-collector@.service",
+    "remote-zettel-work-instance-remote-zettel-executor-check-candidate-check@.service",
+    "remote-zettel-work-epoch-agent-approval-v1-namespace-executor-check-candidate-check@.service",
+    "remote-zettel-work-epoch-agent-approval-v1-namespace-executor-check-review-review@.service",
+    "remote-zettel-work-instance-remote-zettel-executor-check-review-review@.service",
+    "remote-zettel-work-remote-zettel-pub-retirement.service",
+    "remote-zettel-work-epoch-agent-approval-v1-namespace-executor-check-validation@.service",
+    "remote-zettel-work-instance-remote-zettel-executor-check-candidate-preparation@.service"
+  ],
+  "primarySSH": {
+    "bpftool": "/nix/store/lmdk35d5apd502j8d40l5dpvcifq582r-bpftools-6.18.7/bin/bpftool",
+    "connection": {
+      "address": "140.82.114.4",
+      "host": "github.com",
+      "port": 22,
+      "repository": "/damon-sava-stanley/ssdamon-stories.git",
+      "user": "git"
+    },
+    "credential": "/var/lib/remote-zettel-publication-v1-credential/identity",
+    "git": "/nix/store/gy266y3ax8xvblz36m6an7h8mi485mf1-git-2.54.0/bin/git",
+    "helper": "/nix/store/701q6gwq7l0am57fxn28947jnzmg32fi-deeley-v2-ssh-tools/ssh-publication-sandbox.py",
+    "kind": "ssh-publication-owner-config-v1",
+    "knownHosts": "/nix/store/d2fyy5ybcw759z00syy2ifdwzrqnn0sm-retained-known-hosts",
+    "passwd": "/nix/store/q4gyv9bj1vqhpx2kv87s6w4pp9sv38qz-deeley-v2-publisher-passwd",
+    "publisherUid": 3205,
+    "python": "/nix/store/kp6p38x6zb21n7gdlnp9nsm2aagq7sg2-python3-3.13.17/bin/python3",
+    "shell": "/nix/store/13czpvp88x852739v5xi04s871pn35b5-bash-interactive-5.3p9/bin/sh",
+    "ssh": "/nix/store/iz0ak6l9rzczmbh6qkanfk0z7hijbypk-openssh-10.6p1/bin/ssh",
+    "systemctl": "/nix/store/y3fqx697649kqv1a9c0z1jsk4wy2zlqa-systemd-260.5/bin/systemctl",
+    "systemdRun": "/nix/store/y3fqx697649kqv1a9c0z1jsk4wy2zlqa-systemd-260.5/bin/systemd-run",
+    "version": 1
+  },
+  "softwarePrevious": {
+    "application": "/nix/store/llp4aqcdrbkn27kydb171hc3shanvdkm-remote-zettel-0.1.0/lib/remote-zettel",
+    "approvalConfigurationFile": "/var/lib/remote-zettel-software-publication/config/approval.json",
+    "coordinatorStatePath": "/var/lib/remote-zettel/work/remote-zettel/state.sqlite",
+    "documentsRoot": "/var/lib/remote-zettel/work-instances/remote-zettel/documents",
+    "epoch": "remote-zettel-original",
+    "executorRoot": "/var/lib/remote-zettel-work-instance-remote-zettel-executor",
+    "hostRoot": "/var/lib/remote-zettel-work-instance-remote-zettel-host",
+    "ingestionDirectory": "/var/lib/remote-zettel-software-publication/ingestion",
+    "instanceGuard": "/nix/store/ln0q42jnsm9r1hg6yqvi5m5j77cr9sy8-remote-zettel-work-instance-remote-zettel-state",
+    "node": "/nix/store/709kghqbswlhrfshjmrh9sn566gjbwdd-nodejs-24.22.1/bin/node",
+    "publisherConfigurationFile": "/var/lib/remote-zettel-software-publication/config/operator.json",
+    "publisherStorePath": "/var/lib/remote-zettel-software-publication/publisher/state.sqlite",
+    "root": "/var/lib/remote-zettel-software-publication",
+    "sourceRepository": "/var/lib/remote-zettel-software-source/sources/software-v1/source",
+    "sourceStateDirectory": "/var/lib/remote-zettel-software-source-state"
+  },
+  "sourceSystem": "/nix/store/jczv8zybgjkdaag30kc7fv1bg6gaig28-nixos-system-deeley-26.05.20261113.f1e5c35",
+  "storiesEnrollment": {
+    "baseCommitFile": "/var/lib/remote-zettel-agent-approval-v1/source-state/base",
+    "bundle": {
+      "socketPath": "/var/lib/remote-zettel-work-epoch-agent-approval-v1-namespace-host/bundle.sock",
+      "supervisorServerUid": 0,
+      "supervisorSocket": "/run/remote-zettel-work-epoch-agent-approval-v1-namespace-executor/bundle.sock"
+    },
+    "checkoutRepository": "/var/lib/remote-zettel-work-epoch-agent-approval-v1-namespace-source",
+    "content": {
+      "frontendSocket": "/run/remote-zettel-work-epoch-agent-approval-v1-namespace-content/read.sock",
+      "serverUid": 987,
+      "socketPath": "/var/lib/remote-zettel-work-epoch-agent-approval-v1-namespace-host/content.sock",
+      "transport": "uid-proxy-v1"
+    },
+    "frontendServerUid": 987,
+    "frontendSocket": "/run/remote-zettel-work-epoch-agent-approval-v1-namespace/control.sock",
+    "profile": {
+      "admissionPolicy": "continuation-v1",
+      "candidateCheckProfile": "07173d70da764a06bd66d3452324d11dbb919de8014ecee87e053e03466759ab",
+      "candidateReviewProfile": "993bcc150b26e746aae4d2245538c46babeaf806b9efe246afdc623e66985826",
+      "checkCommand": "/nix/store/kp6p38x6zb21n7gdlnp9nsm2aagq7sg2-python3-3.13.17/bin/python3 -I /nix/store/mi6scjvbrfbihjq7c99v6x668xq8dnqm-check-writing-worktree.py 3689bb4c647704ca4c2d658b3e0e8a839eb6a116 /nix/store/gy266y3ax8xvblz36m6an7h8mi485mf1-git-2.54.0/bin/git",
+      "maxToolCalls": 6,
+      "maxTurns": 8,
+      "modelId": "gpt-6-astra",
+      "provider": "openai",
+      "repository": "damon-sava-stanley/ssdamon-stories",
+      "socketPath": "/var/lib/remote-zettel-work-epoch-agent-approval-v1-namespace-host/host.sock",
+      "statePath": "/var/lib/remote-zettel-work-epoch-agent-approval-v1-namespace-host/admission.sqlite",
+      "structuredInput": "question-v1",
+      "supervisorSocket": "/run/remote-zettel-work-epoch-agent-approval-v1-namespace-executor/control.sock",
+      "timeoutMs": 120000
+    }
+  },
+  "units": {
+    "remote-zettel-deployment-bridge.service": "ec68145a9c0ccda5a742ea92515ce716af92d593fec888fa81c43f4c4a72e20c",
+    "remote-zettel-deployment-status.service": "5d91870cbc23ad95640787be86184dc7a905a3cafb081e86bb7492af78ae52fb",
+    "remote-zettel-promotion.service": "92f64e210a335e8a7348fd85e6f92f373b0424063fc52ba4f7d54aba2e66ead1",
+    "remote-zettel-publication-acknowledgment-proxy.service": "3cdc1e3272c8fcc122a896de8ac6f775fe1a86972bf86aceeec518dcf8324a40",
+    "remote-zettel-publication-automation-outcome-proxy.service": "2963fbd36c132974e8416184ead7d0db7d3b0b53b6c4c7e573b10c6f2e4e3a53",
+    "remote-zettel-publication-dispatch-proxy.service": "9ce1e590a6e335ba077cac6384b7d489d4e264e64e8db2730a5fbf81dd55ee16",
+    "remote-zettel-publication-outcome-proxy.service": "9a13c15bbb366e5a337c986e1b3e7d89dd0749817308d4591225783bd9a8ac90",
+    "remote-zettel-publication-outcomes.service": "e4c6ad5d753ba212cc3d9d81e8471649dab21e6944ecafff9b458327a4fec7b4",
+    "remote-zettel-publication-release-proxy.service": "59ad59ff21719b8f8dec276a4a9c5a43ab790d9a669f93900108ffc681ffcb22",
+    "remote-zettel-publication-retirement-proxy.service": "e34d4de57beba00cc14c6bd5acf77e64a7b00d965bfa2adb1ca8a26880aa0c7c",
+    "remote-zettel-self-deployment.service": "c0a988e6bc4f939c275ccef9c0d8e176e74f91ae213c22a813e5608bd5dfbafe",
+    "remote-zettel-work-epoch-agent-approval-v1-namespace-bundle-proxy.service": "af72e9968756b70696ce647c66b3852cedbf13315c083d0c55c2d0c1f8f38436",
+    "remote-zettel-work-epoch-agent-approval-v1-namespace-content-proxy.service": "76c65a8652ff10ec73f8abeb42eb34e079883d95e2f34962d88d388d55eb0a0d",
+    "remote-zettel-work-epoch-agent-approval-v1-namespace-executor-check-candidate-check@.service": "76dad3a0cd9f201955bf83587ff23116cb92d024076d22e21500117461243083",
+    "remote-zettel-work-epoch-agent-approval-v1-namespace-executor-check-candidate-collector@.service": "31010e4fc736d41498fd517c63c79b23ae894cf9cbab5938fe1d84cdc20040ea",
+    "remote-zettel-work-epoch-agent-approval-v1-namespace-executor-check-candidate-preparation@.service": "4e2045f4975da5033e8a83b68927bfad0babdd43b149661f488f791c4aee9420",
+    "remote-zettel-work-epoch-agent-approval-v1-namespace-executor-check-capture@.service": "baa5e62c2dda49d272774586b49c4ed991428e39f04be7fa645cc0d8301f95ed",
+    "remote-zettel-work-epoch-agent-approval-v1-namespace-executor-check-operation@.service": "7b05a232291f2a8c2a3a93ffeb89c1b1371b30aa0777c12110a6062507a4f040",
+    "remote-zettel-work-epoch-agent-approval-v1-namespace-executor-check-review-collector@.service": "5c898b5dd7533bdd32f7fa1c27e0a912b712bd9172dbdb453c75f92e52b2e8c1",
+    "remote-zettel-work-epoch-agent-approval-v1-namespace-executor-check-review-review@.service": "5863ef135d2d1f0ce8249200eeeb0f1e08ab1bb3bab61e7f18c2741d1b32db8c",
+    "remote-zettel-work-epoch-agent-approval-v1-namespace-executor-check-validation@.service": "2dcdd60faa1078f091fd129ce0755933cf828a0658444f8602a7874595ae236a",
+    "remote-zettel-work-epoch-agent-approval-v1-namespace-executor-check@.service": "8f57b0e729a79633743bdf1a500c16ede807ea674a7891c34bb6b86c749fbef3",
+    "remote-zettel-work-epoch-agent-approval-v1-namespace-executor-supervisor.service": "3306909ef3bb349b59ce1eb13c7bd7acd9d440e7e0da5ff02380d3796ca722eb",
+    "remote-zettel-work-epoch-agent-approval-v1-namespace-host.service": "9d9968f85612c980e1b258b02d0eff3d0a66f2fdd4cbe7f93af2a08948d0ea73",
+    "remote-zettel-work-epoch-agent-approval-v1-namespace-operator.service": "a69f70423d816f41de6fdd6545fcd6db6e8e42a693fc2913c2f6b32cee972911",
+    "remote-zettel-work-epoch-agent-approval-v1-namespace-proxy.service": "8e3d1d57c3171825f3fb5440253355520ec6fc5292827580621dca9ae11ea68e",
+    "remote-zettel-work-epoch-publication-v2-namespace-bundle-proxy.service": "45de87eea1edf10fc7b9afcfa3a266f10fb95c85a4c7adb4273856092e2fd035",
+    "remote-zettel-work-epoch-publication-v2-namespace-content-proxy.service": "d3ac39a95644c022ed1cda3a0126f7faa4a646c53f34faf519d5c0decd57a1ea",
+    "remote-zettel-work-epoch-publication-v2-namespace-executor-check-candidate-check@.service": "43bc61cd2d18753ef09c53f7fa2685569433fec30674847985d656a02285f7ce",
+    "remote-zettel-work-epoch-publication-v2-namespace-executor-check-candidate-collector@.service": "075731e3589d84ca3b2cadf4a883ec4779f529ddeb1b46413820625d95f26665",
+    "remote-zettel-work-epoch-publication-v2-namespace-executor-check-candidate-preparation@.service": "4eef49df393d0993cd0f24d3bf6b7c01f48ada9a6afe056d77862010c9632f42",
+    "remote-zettel-work-epoch-publication-v2-namespace-executor-check-capture@.service": "75fb5e00d2f26d9d7e0cb63b8efc425d0e7f580a0a5a7a6b441ef9bc7ed43534",
+    "remote-zettel-work-epoch-publication-v2-namespace-executor-check-operation@.service": "b62704ca246f9754f3536fed629372260c535eed3eeb50b82a615706ed8f1e1a",
+    "remote-zettel-work-epoch-publication-v2-namespace-executor-check-review-collector@.service": "10cb180fafb774ce2184c8ffe6ba70edd5131c862db8ffc55cef96b5e99783a4",
+    "remote-zettel-work-epoch-publication-v2-namespace-executor-check-review-review@.service": "117eb7e32f6bcbb8873e13010c2d610d323a3fa355bc0bede45239d4169e264e",
+    "remote-zettel-work-epoch-publication-v2-namespace-executor-check-validation@.service": "997e932df4a7cde17df006d241927a139f3ee96d5acbd396c3eb7bc94e6c83d9",
+    "remote-zettel-work-epoch-publication-v2-namespace-executor-check@.service": "1608806656ef880b28ff9e6204d0ad17846cf43482d0062c305f15b3ef979433",
+    "remote-zettel-work-epoch-publication-v2-namespace-executor-supervisor.service": "10a2edaeab40af6797d38904d7093221a55035238ecb1597dbadf47d1c6298d8",
+    "remote-zettel-work-epoch-publication-v2-namespace-host.service": "ffd7bd7a3ca16942630beb33cffb1e7d8b7000ff93a0894f4e471232ff6f9206",
+    "remote-zettel-work-epoch-publication-v2-namespace-proxy.service": "179d91adb8328968734bcf8e77f0dcfa1df72dd8f593b051f80afb20c29b4eee",
+    "remote-zettel-work-epoch-task-lifecycle-v1-namespace-bundle-proxy.service": "4527ae5ae5d51e9fd8e16f8e5eb51d228b5c6ce9fa58dc97c13413e2232db3a7",
+    "remote-zettel-work-epoch-task-lifecycle-v1-namespace-content-proxy.service": "5d02ad8a78481d5a471017548b7dc96fddeee7a117ab63475cfd4f9d4cee6b5b",
+    "remote-zettel-work-epoch-task-lifecycle-v1-namespace-executor-check-candidate-check@.service": "217bc6c3c0be7f7da28f63dd53f13cdb9ecadcf1ea7b7532cfa99405c267cc3e",
+    "remote-zettel-work-epoch-task-lifecycle-v1-namespace-executor-check-candidate-collector@.service": "1a6d2f7de5d783e8c741bf9e3ca0cae1122a63eded6778a1b7940058cfe5cc65",
+    "remote-zettel-work-epoch-task-lifecycle-v1-namespace-executor-check-candidate-preparation@.service": "22033e76c0b279fe1320b9a2e656a828ba291b901586ec996edcd8f16d0d3a12",
+    "remote-zettel-work-epoch-task-lifecycle-v1-namespace-executor-check-capture@.service": "d7f41bf1dfc9c4ee5a5e761aa9afd283e5051ab20290f9c59fa43b80f5d9b14f",
+    "remote-zettel-work-epoch-task-lifecycle-v1-namespace-executor-check-operation@.service": "7234b527d1b45d8a1a63fe92dcd71d79adef01c88cc48404293f6e2a9cbd3059",
+    "remote-zettel-work-epoch-task-lifecycle-v1-namespace-executor-check-review-collector@.service": "ff711e7c22652e0bfc60017ddd8ace178c22a40203b6f1654884d55874958862",
+    "remote-zettel-work-epoch-task-lifecycle-v1-namespace-executor-check-review-review@.service": "4e3af2a85ee078c0fbf891a09f37ab165595da5743ff5e31cf04533860a90193",
+    "remote-zettel-work-epoch-task-lifecycle-v1-namespace-executor-check-validation@.service": "730a8463da22d54ea0d9e0ef1cd626dce7e828327a4287d12e055ee70f816903",
+    "remote-zettel-work-epoch-task-lifecycle-v1-namespace-executor-check@.service": "1ef797696aa03a10ed67bf677734228f52f2dc778ba4af76658f8fa1ab04162d",
+    "remote-zettel-work-epoch-task-lifecycle-v1-namespace-executor-supervisor.service": "d737e67267b9357ca9ea58af5883883742c804e21afe1e7f152aebaef3796fb1",
+    "remote-zettel-work-epoch-task-lifecycle-v1-namespace-host.service": "d4ac3c823b52309ef299bc8f1ed867cf9b4f72ae6a9f98eabd27092a3ae2addd",
+    "remote-zettel-work-epoch-task-lifecycle-v1-namespace-proxy.service": "b403320030aae6ccf45d572453f253bf2160b11874ffb501d79ecde01ddf6846",
+    "remote-zettel-work-instance-remote-zettel-content-proxy.service": "1ea77ad997a9adcfbb9713b13bface3e0e029601d9cb3ccf58cb4e1f357e3d79",
+    "remote-zettel-work-instance-remote-zettel-executor-check-candidate-check@.service": "0ad960604835bb60bad9b155358312caf225ab8844530af6a2367734b2117994",
+    "remote-zettel-work-instance-remote-zettel-executor-check-candidate-collector@.service": "b409ddeb4475120b738ea8805f179597f6336d0d3a7122a6f75572e10ac00d61",
+    "remote-zettel-work-instance-remote-zettel-executor-check-candidate-preparation@.service": "94d019d2d02089125ec9142c2799ce3f31261133da4889ac8db22c0ab26fbad5",
+    "remote-zettel-work-instance-remote-zettel-executor-check-capture@.service": "df7d64ab251ae2726f6bb376e64a1a2136f82a3e24c86445ddf75972a8b864bf",
+    "remote-zettel-work-instance-remote-zettel-executor-check-operation@.service": "86c51a2d94a896d174088806474b7a064a0444f7da4754a1d2c59ea784eae328",
+    "remote-zettel-work-instance-remote-zettel-executor-check-review-collector@.service": "44f6bcabfee085264329642337ddd778989f6b587eeb84e7f8890fa3fc823ab5",
+    "remote-zettel-work-instance-remote-zettel-executor-check-review-review@.service": "841f9a811045ba1d8d78823880bb098d71a93deab41b5f17735901f2ad6defdd",
+    "remote-zettel-work-instance-remote-zettel-executor-check-validation@.service": "f73e8571cde58c28a2d1fd0c3e6802434af4851beb67ddd4cec9a5db5d06388f",
+    "remote-zettel-work-instance-remote-zettel-executor-check@.service": "7aef5ec78f59534204d9fa0921ae413a2a915c7e94db1c0d894b8475e1616f36",
+    "remote-zettel-work-instance-remote-zettel-executor-supervisor.service": "88e693c94d200cf76c5271ea7e28adde9e96bc08806a98b7566cbf69be816e5c",
+    "remote-zettel-work-instance-remote-zettel-host.service": "0a0a89a0a5d9034614919f343464544bdc0f994efed01bf8b11309537e7ae1a6",
+    "remote-zettel-work-instance-remote-zettel-policy-check@.service": "6488882f1a5c1a84b6995fad6b4902ba8212e7f846ac6ae3663a686ed8aecada",
+    "remote-zettel-work-instance-remote-zettel-prepare.service": "24a720b980f5b7e21d268409312be5a994c45c364852493f2cfe8563529b8439",
+    "remote-zettel-work-instance-remote-zettel-proxy.service": "17b08d8aa60aa3f7a5273f6718412d9b6cab50650038ed124f12362cf270adfb",
+    "remote-zettel-work-instance-remote-zettel-repository-read.service": "d4cd9602353cdcfcddfc2349a4378d3e826441194ef18a2f0530f517ccc0ff9a",
+    "remote-zettel-work-remote-zettel-pub-acknowledgment.service": "13a1cc08d26fe168c68d0c03324429cb5236f7354f60d7f2980edcab06a8e02f",
+    "remote-zettel-work-remote-zettel-pub-automation-outcome.service": "803530f04b5f2b31c12de9b005e978928579f6cc432226ba0033f7b5437bea67",
+    "remote-zettel-work-remote-zettel-pub-bundle.service": "f0d2b1dfa0548e62bca0699a2d0cb1dc4e226711e01ff4615954090e97d892ce",
+    "remote-zettel-work-remote-zettel-pub-dispatch.service": "a8240e1cc38a1298867e1dc51cc9a5ba4be742bcc5b89739da49a0bddc6b168b",
+    "remote-zettel-work-remote-zettel-pub-ingestion.service": "20d7dcaa9995bcb4e5957576ea0d83b871a214c1421c1f747ab0a3ff51a59730",
+    "remote-zettel-work-remote-zettel-pub-outcome.service": "faa106742295eba9b41ec07868666076887572795238e32ce65897b389c1bf6d",
+    "remote-zettel-work-remote-zettel-pub-owner.service": "a39eae5b431fcefd9192ca6fe890617e2b92c77c89d6c2b70b8df429539e89c3",
+    "remote-zettel-work-remote-zettel-pub-release.service": "93f10e9633bd64e42c9a94d7a40012797888ffde0d6d3d21189f1b934a2427ed",
+    "remote-zettel-work-remote-zettel-pub-retirement.service": "2ecf14084ac787051c03f9518603e9bf52467144908dabedc0f6f30fe3f93b11",
+    "remote-zettel-work-upgrade.service": "a9daa77d6c103158fb3abbc2bfd95720838d90108ba7b6490306c0a69cf89797",
+    "remote-zettel.service": "590312d9e0ab8b816007ac6f9b18b715d24d0e7bcdb4fcf0f2907915471457b5"
+  },
+  "upgrade": {
+    "access": {
+      "audience": "68d97452fec8a3717afe57ce54949614ed41ea5f5cad9c52b68c988404d255a9",
+      "issuer": "https://late-thunder-9219.cloudflareaccess.com"
+    },
+    "application": "/nix/store/n4bmabahpbiwh5vg8pz7vd9a64dgn8my-remote-zettel-0.1.0/lib/remote-zettel",
+    "applicationGid": 984,
+    "applicationUid": 989,
+    "approvalConfigurationFile": "/var/lib/remote-zettel-agent-approval-v1/config/approval.json",
+    "chatControlAgentId": "main-chat",
+    "configDirectory": "/var/lib/remote-zettel-agent-approval-v1/config",
+    "coordinatorStatePath": "/var/lib/remote-zettel/work/agent-approval-v1/state.sqlite",
+    "documentsRoot": "/home/damon/Dropbox/agent-workspace-agent-approval-v1",
+    "enrollment": "/nix/store/wymqzm9p5435rzmp7rcip0261aj6l261-work-pilot-content-enrollment.json",
+    "epoch": "agent-approval-v1",
+    "freshPaths": [
+      "/var/lib/remote-zettel-agent-approval-v1",
+      "/var/lib/remote-zettel-work-epoch-agent-approval-v1-namespace-source",
+      "/var/lib/remote-zettel-work-epoch-agent-approval-v1-namespace-host",
+      "/var/lib/remote-zettel/work/agent-approval-v1/state.sqlite",
+      "/home/damon/Dropbox/agent-workspace-agent-approval-v1"
+    ],
+    "guardCommand": "/nix/store/kp6p38x6zb21n7gdlnp9nsm2aagq7sg2-python3-3.13.17/bin/python3 -I /nix/store/x82ibys26835hbp73f84h8nbh9b9b1m6-work-upgrade-scripts/work-upgrade.py --guard agent-approval-v1 /nix/store/p12n3rvljxbivvbmy393xkp6cr4yawlg-epoch-agent-approval-v1-writer-definitions /var/lib/remote-zettel-upgrades/agent-approval-v1",
+    "historyRoot": "/var/lib/remote-zettel-history",
+    "hostGid": 979,
+    "hostRoot": "/var/lib/remote-zettel-work-epoch-agent-approval-v1-namespace-host",
+    "hostUid": 987,
+    "ingest": "/nix/store/mv8k7mihf8h28gw5q8013vibkb5hk2xl-work-candidate-ingest/bin/work-candidate-ingest",
+    "ingestionConfigurationFile": "/var/lib/remote-zettel-agent-approval-v1/config/ingestion-service.json",
+    "ingestionDirectory": "/var/lib/remote-zettel-agent-approval-v1/ingestion",
+    "ingestionPin": "/nix/store/0p0ly71x6q3005x3dlr7bxmiwja5f6v6-work-publication-ingestion-pin/pin.json",
+    "ingestionPolicySha256": "dce96ff9b8b046f94dd3223120f8e6466bd247408be860017f0881a6d7be9a5c",
+    "ingestionWriterConfigurationFile": "/var/lib/remote-zettel-agent-approval-v1/config/ingestion.json",
+    "node": "/nix/store/709kghqbswlhrfshjmrh9sn566gjbwdd-nodejs-24.22.1/bin/node",
+    "operatorGid": 100,
+    "operatorUid": 1000,
+    "previous": {
+      "approvalConfigurationFile": "/var/lib/remote-zettel-task-lifecycle-v1/config/approval.json",
+      "coordinatorStatePath": "/var/lib/remote-zettel/work/task-lifecycle-v1/state.sqlite",
+      "documentsRoot": "/home/damon/Dropbox/agent-workspace-task-lifecycle-v1",
+      "epoch": "task-lifecycle-v1",
+      "executorRoot": "/var/lib/remote-zettel-work-epoch-task-lifecycle-v1-namespace-executor",
+      "hostRoot": "/var/lib/remote-zettel-work-epoch-task-lifecycle-v1-namespace-host",
+      "ingestionDirectory": "/var/lib/remote-zettel-task-lifecycle-v1/ingestion",
+      "publisherConfigurationFile": "/var/lib/remote-zettel-task-lifecycle-v1/config/operator.json",
+      "publisherStorePath": "/var/lib/remote-zettel-task-lifecycle-v1/publisher/state.sqlite",
+      "root": "/var/lib/remote-zettel-task-lifecycle-v1",
+      "sourceRepository": "/var/lib/remote-zettel-work-epoch-task-lifecycle-v1-namespace-source",
+      "sourceStateDirectory": "/var/lib/remote-zettel-task-lifecycle-v1/source-state",
+      "writerDefinitions": "/nix/store/v2drdvm9w6rksnh4nwifsyp8yqclg4wr-epoch-task-lifecycle-v1-writer-definitions"
+    },
+    "publisherConfigurationFile": "/var/lib/remote-zettel-agent-approval-v1/config/operator.json",
+    "publisherId": "b36900fbea6f8f2b6b75f8d3940f7e643f00736aa10bb785c1d133baecc6fcbe",
+    "publisherStorePath": "/var/lib/remote-zettel-agent-approval-v1/publisher/state.sqlite",
+    "python": "/nix/store/kp6p38x6zb21n7gdlnp9nsm2aagq7sg2-python3-3.13.17/bin/python3",
+    "repository": "damon-sava-stanley/ssdamon-stories",
+    "repositoryId": "ssdamon-stories",
+    "root": "/var/lib/remote-zettel-agent-approval-v1",
+    "runtimeHelper": "/nix/store/x82ibys26835hbp73f84h8nbh9b9b1m6-work-upgrade-scripts/work-upgrade-runtime.mjs",
+    "sharedUnits": [
+      "remote-zettel.service",
+      "remote-zettel-promotion.service",
+      "remote-zettel-publication-outcomes.service",
+      "remote-zettel-publication-release-proxy.service",
+      "remote-zettel-publication-outcome-proxy.service",
+      "remote-zettel-publication-acknowledgment-proxy.service",
+      "remote-zettel-publication-dispatch-proxy.service",
+      "remote-zettel-publication-retirement-proxy.service",
+      "remote-zettel-publication-automation-outcome-proxy.service"
+    ],
+    "snapshotPaths": [
+      "/var/lib/remote-zettel-task-lifecycle-v1",
+      "/var/lib/remote-zettel-work-epoch-task-lifecycle-v1-namespace-host",
+      "/var/lib/remote-zettel-work-epoch-task-lifecycle-v1-namespace-executor",
+      "/var/lib/remote-zettel-work-epoch-task-lifecycle-v1-namespace-source",
+      "/home/damon/Dropbox/agent-workspace-task-lifecycle-v1",
+      "/var/lib/remote-zettel/work/task-lifecycle-v1"
+    ],
+    "sourceId": "461bd7474f8ef55b325cfa79c69f5032d54d47539136cf0fc33bc97139706f3f",
+    "sourcePin": "/var/lib/remote-zettel-agent-approval-v1/source-pin.json",
+    "startUnits": [
+      "remote-zettel.service",
+      "remote-zettel-promotion.service",
+      "remote-zettel-publication-outcomes.service",
+      "remote-zettel-publication-release-proxy.service",
+      "remote-zettel-publication-outcome-proxy.service",
+      "remote-zettel-publication-acknowledgment-proxy.service",
+      "remote-zettel-publication-dispatch-proxy.service",
+      "remote-zettel-publication-retirement-proxy.service",
+      "remote-zettel-publication-automation-outcome-proxy.service",
+      "remote-zettel-work-epoch-agent-approval-v1-namespace-host.service",
+      "remote-zettel-work-epoch-agent-approval-v1-namespace-proxy.service",
+      "remote-zettel-work-epoch-agent-approval-v1-namespace-content-proxy.service",
+      "remote-zettel-work-epoch-agent-approval-v1-namespace-bundle-proxy.service",
+      "remote-zettel-work-epoch-agent-approval-v1-namespace-executor-supervisor.service",
+      "remote-zettel-work-epoch-agent-approval-v1-namespace-operator.service"
+    ],
+    "stateDirectory": "/var/lib/remote-zettel-upgrades/agent-approval-v1",
+    "systemctl": "/nix/store/y3fqx697649kqv1a9c0z1jsk4wy2zlqa-systemd-260.5/bin/systemctl",
+    "topology": {
+      "acknowledgment": {
+        "serverUid": 989,
+        "socketPath": "/run/remote-zettel-publication-acknowledgment-proxy/read.sock",
+        "sourceDigest": "2e0ec2325ccc3a5da2fcf47b238d78ce927c550eff9799303ab1100e5f26c736"
+      },
+      "dispatchSocket": "/run/remote-zettel-publication-outcomes/dispatch.sock",
+      "ingestion": {
+        "controlSocketPath": "/run/remote-zettel/ingest.sock",
+        "serverUid": 0,
+        "socketPath": "/run/remote-zettel-publication-ingestion/intake.sock"
+      },
+      "publicationAutomation": {
+        "dispatchSocketPath": "/run/remote-zettel-publication-dispatch-proxy/read.sock",
+        "outcomeSocketPath": "/run/remote-zettel-publication-automation-outcome-proxy/read.sock",
+        "serverUid": 0
+      },
+      "publicationLifecycle": {
+        "acknowledgmentSocketPath": "/run/remote-zettel/ack.sock",
+        "controlSocketPath": "/run/remote-zettel/complete.sock",
+        "retirementServerUid": 0,
+        "retirementSocketPath": "/run/remote-zettel-publication-retirement-proxy/read.sock",
+        "sourceDigest": "2e0ec2325ccc3a5da2fcf47b238d78ce927c550eff9799303ab1100e5f26c736"
+      },
+      "retirementSocket": "/run/remote-zettel-publication-outcomes/retire.sock",
+      "sourceConfiguration": {
+        "repository": "/var/lib/remote-zettel-work-epoch-agent-approval-v1-namespace-source",
+        "stateDirectory": "/var/lib/remote-zettel-agent-approval-v1/source-state"
+      }
+    },
+    "transientPrefixes": [
+      "ssh-publication-",
+      "publisher-archive-",
+      "publisher-candidate-",
+      "publication-source-validation-"
+    ],
+    "version": 1,
+    "writerDefinitions": "/nix/store/p12n3rvljxbivvbmy393xkp6cr4yawlg-epoch-agent-approval-v1-writer-definitions"
+  }
+}
