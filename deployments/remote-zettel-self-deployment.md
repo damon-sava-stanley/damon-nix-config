@@ -103,3 +103,41 @@ VM; a synthetic private SSH/Nix source-build VM; five private-fetch boundary tes
 the host Work/Even checks; equality of normal and restricted system builds; and a
 configuration check proving two application revisions preserve identical controller,
 publication and execution policy while selecting different application packages.
+
+## First real application release after migration
+
+Migration fixes were pushed to Remote Zettel as `b3e28ada2f80a1978bf2a5b7ba005a78c9ee0588`.
+The migrated software source still points at `78e91bf`; before creating the first
+new software task, the exact reviewed fast-forward is supplied by
+`packages.x86_64-linux.test-app-release`. It retains a byte/hash-bound pack and uses
+the existing before-first-task bootstrap primitive. It refuses software task or
+publication history, acquires maintenance/ownership guards, drains automatic
+delivery, fences admissions and stops drained software owners, advances the exact
+source pointers, verifies the unchanged enrollment, and restores services. Neither
+credentials nor historical journals are copied or rebound. A root VM verifies the
+source-policy fingerprint and pointer replay, including existing-task refusal.
+
+After source restoration it imports one deterministic task document as the
+application UID, without overwriting user edits, and queues its first run through
+the existing Work control API. The task requests only removal of the tracked root
+`result` symlink and addition of `/result` to `.gitignore`. Its ID is
+`66e4db62-4bb4-437b-bdb8-5b43d0b66c3a`. No synthetic approval or deployment record
+is created. Queue uncertainty is inspected through the existing board rather than
+blindly replayed. The worker and trusted independent checks/review produce the
+candidate through their normal services.
+
+The software publication policy requires a genuine Cloudflare Access human
+approval. Open `https://zettel.ss-damon.com/#work`, select the software task, review
+its exact candidate/check/review snapshot and approve through the normal UI.
+Chat approval is not substituted for that enrolled identity, and no JWT is copied
+or manufactured by the test operator.
+
+A temporary observer runs as the application UID, with private networking and
+restricted filesystem writes. It queries only the Work board, approval history and
+read-only deployment-status proxy. It exports allowlisted IDs, statuses and commit
+metadata to `/var/lib/remote-zettel-app-release-test-observer/status.json`; no task
+text, credential material or approval token is exported. This file is a progress
+projection, not deployment authority. The observer stops after associated successful
+publication/deployment or two hours. Final verification independently compares the
+remote commit, protected advancing base, current/selected generation, immutable
+packaged revision, serving health and unchanged Work/controller contracts.

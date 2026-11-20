@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "taskId": "66e4db62-4bb4-437b-bdb8-5b43d0b66c3a",
+  "taskRevision": "c291d89d6f723b527ba1b81ccf67bd0e3a26abe902f41785a5df2699fbc30af5",
+  "document": "---\nid: 66e4db62-4bb4-437b-bdb8-5b43d0b66c3a\nrepository: damon-sava-stanley/remote-zettel\ntitle: Verify app release after host policy migration\n---\n\n## Request\n\nRemove the tracked root result symlink from Git and add /result to the root .gitignore. Preserve all other published migration and application changes. This is the first genuine application publication and deployment test after the host policy migration. Do not edit Nix host policy or deployment configuration. Do not approve or publish the candidate yourself.\n\n## Acceptance criteria\n\nThe candidate changes only the deletion of result and the /result ignore entry in .gitignore. The trusted software checks and independent candidate review pass. Submit the exact candidate for human review; approval, publication and automatic deployment use their existing authenticated services.\n",
+  "repository": "damon-sava-stanley/remote-zettel",
+  "oldBase": "78e91bf93ab61734b67726168807444dfeabf3ee",
+  "newBase": "b3e28ada2f80a1978bf2a5b7ba005a78c9ee0588",
+  "packRoot": "/nix/store/shd5w89yrvqn7a8scqwhqncmi5as29ar-source-pack"
+}

@@ -77,6 +77,9 @@
     in
     {
       packages.${system} = {
+        test-app-release = import ./modules/nixos/remote-zettel-app-release-test-operator.nix {
+          inherit pkgs; targetConfig = self.nixosConfigurations.deeley.config;
+        };
         capture-deployment-host = import ./deployment/capture.nix { inherit pkgs; };
         resume-host-deployment = import ./modules/nixos/remote-zettel-deployment-resume-operator.nix {
           inherit pkgs; targetConfig = self.nixosConfigurations.deeley.config;
@@ -143,6 +146,9 @@
       };
 
       checks.${system} = {
+        app-release-source = import ./tests/app-release-test.nix {
+          inherit pkgs; targetConfig = self.nixosConfigurations.deeley.config;
+        };
         remote-zettel-deployment-resume = import ./tests/resume-host-deployment.nix {
           inherit pkgs; targetConfig = self.nixosConfigurations.deeley.config;
         };
