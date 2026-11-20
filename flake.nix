@@ -13,6 +13,18 @@
       url = "git+ssh://git@github.com/damon-sava-stanley/remote-zettel.git?rev=c583003a20c795557a6edeac4b530aca7bbb08ed";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    remote-zettel-software = {
+      url = "git+ssh://git@github.com/damon-sava-stanley/remote-zettel.git?rev=15edcc27575cbd703aa6c49853d759dcc81da4e4";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    remote-zettel-software-policy = {
+      url = "path:/nix/store/9p1l3n3jl21kskihcyb5hf03snbq5fvq-source";
+      flake = false;
+    };
+    remote-zettel-software-source = {
+      url = "path:/nix/store/cfbcja1w9k5zmbsvq4pcg2k14rx9by07-source";
+      flake = false;
+    };
     dictate-src = {
       url = "github:msf/dictate";
       flake = false;
@@ -43,6 +55,9 @@
       citeref-src,
       remote-zettel,
       remote-zettel-runtime,
+      remote-zettel-software,
+      remote-zettel-software-policy,
+      remote-zettel-software-source,
       papertoy,
     }:
     let
@@ -62,16 +77,23 @@
     in
     {
       packages.${system} = {
+        initialize-remote-zettel-deployment = self.nixosConfigurations.deeley.config.system.build.remoteZettelSelfDeploymentInitialize;
+        enroll-remote-zettel = import ./modules/nixos/remote-zettel-enrollment-operator.nix {
+          inherit pkgs;
+          prepared = self.nixosConfigurations.deeley-work-preparation.config;
+          active = self.nixosConfigurations.deeley.config;
+        };
         cloudscape-renderer = cloudscapeRenderer;
         evenhub-cli = pkgs.callPackage ./home/damon/packages/evenhub-cli.nix { };
       };
 
       nixosConfigurations.deeley = nixpkgs.lib.nixosSystem {
         inherit system;
-        specialArgs = { inherit remote-zettel remote-zettel-runtime; };
+        specialArgs = { inherit remote-zettel remote-zettel-runtime remote-zettel-software remote-zettel-software-policy remote-zettel-software-source; };
 
         modules = [
-          remote-zettel.nixosModules.default
+          remote-zettel-software.nixosModules.default
+          remote-zettel-software.nixosModules.work-repository-instances
           ./hosts/deeley
           home-manager.nixosModules.home-manager
           {
@@ -105,7 +127,39 @@
         ];
       };
 
+      nixosConfigurations.deeley-work-preparation = self.nixosConfigurations.deeley.extendModules {
+        modules = [ ({ lib, ... }: {
+          services.remote-zettel.repositoryInstances.remote-zettel.enableExecution = lib.mkForce false;
+        }) ];
+      };
+
       checks.${system} = {
+        remote-zettel-private-deployment = pkgs.runCommandLocal "private-deployment-source-tests" {} ''
+          export REMOTE_ZETTEL_DEPLOYMENT_SOURCE=${remote-zettel-software.outPath}
+          export REMOTE_ZETTEL_PRIVATE_ADAPTER=${./scripts/remote-zettel-private-deployment.py}
+          ${pkgs.python3}/bin/python3 ${./tests/remote-zettel-private-deployment.py}
+          touch "$out"
+        '';
+        remote-zettel-self-deployment = let
+          variant = revision: (self.nixosConfigurations.deeley.extendModules {
+            modules = [ ({ lib, pkgs, ... }: {
+              services.remote-zettel.package = lib.mkForce (import (remote-zettel-software + "/nix/remote-zettel-package.nix") {
+                inherit pkgs; applicationSource = remote-zettel.outPath; applicationRevision = revision;
+              });
+            }) ];
+          }).config;
+        in import ./tests/remote-zettel-self-deployment.nix {
+          inherit pkgs; systemConfig = self.nixosConfigurations.deeley.config;
+          variants = map variant [ "0000000000000000000000000000000000000000" "1111111111111111111111111111111111111111" ];
+        };
+        remote-zettel-enrollment = import ./tests/remote-zettel-enrollment.nix { inherit pkgs; };
+        remote-zettel-source = import ./tests/remote-zettel-source.nix {
+          inherit pkgs;
+          tool = self.nixosConfigurations.deeley.config.system.build.remoteZettelSoftwareSourceCommission;
+          baseCommit = self.nixosConfigurations.deeley.config.services.remote-zettel.repositoryInstances.remote-zettel.baseCommit;
+          sourceSnapshot = remote-zettel-software-source.outPath;
+          runtimeSource = remote-zettel-software-policy.outPath;
+        };
         cloudscape = import ./tests/cloudscape.nix {
           inherit pkgs cloudscapeRenderer;
           homeConfig = self.nixosConfigurations.deeley.config.home-manager.users.damon;

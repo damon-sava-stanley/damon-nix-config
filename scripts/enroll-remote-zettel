@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+set -euo pipefail
+if [[ $# -ne 0 || $EUID -eq 0 ]]; then
+  echo 'Run ./scripts/enroll-remote-zettel as your normal user; it requests sudo after building.' >&2
+  exit 2
+fi
+config_root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)
+state_root="$config_root/.local/enrollment"
+mkdir -p "$state_root"
+snapshot=$(mktemp -d -t deeley-work-enrollment.XXXXXXXX)
+trap 'rm -rf -- "$snapshot"' EXIT
+python3 - "$config_root" "$snapshot" <<'PYTHON'
+from pathlib import Path
+import shutil, subprocess, sys
+root, snapshot = map(Path, sys.argv[1:])
+if Path(subprocess.check_output(['git', '-C', str(root), 'rev-parse', '--show-toplevel'], text=True).strip()) != root:
+    raise SystemExit('Expected the damon-nix-config repository root')
+files = subprocess.check_output(['git', '-C', str(root), 'ls-files', '--cached', '--others', '--exclude-standard', '-z'])
+for name in set(files.decode().split('\0')) - {''}:
+    relative = Path(name)
+    if relative.is_absolute() or '..' in relative.parts:
+        raise SystemExit('Unsafe repository path')
+    source, target = root / relative, snapshot / relative
+    if not source.exists() and not source.is_symlink():
+        continue  # A working-tree deletion is part of this configuration.
+    target.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(source, target, follow_symlinks=False)
+PYTHON
+echo 'Building Deeley enrollment from this repository with deployments/remote-zettel-work.lock.'
+echo 'The pending flake.lock is preserved. Login remains interactive.'
+nix build --reference-lock-file "$snapshot/deployments/remote-zettel-work.lock" \
+  --no-write-lock-file --out-link "$state_root/operator" \
+  "path:$snapshot#enroll-remote-zettel"
+operator=$(readlink -e -- "$state_root/operator")
+rm -rf -- "$snapshot"
+trap - EXIT
+exec sudo -- "$operator/bin/enroll-remote-zettel"

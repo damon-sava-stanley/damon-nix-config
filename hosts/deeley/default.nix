@@ -24,6 +24,9 @@ let
 in
 {
   imports = [
+    ./remote-zettel-software.nix
+    ../../modules/nixos/remote-zettel-software-publication.nix
+    ../../modules/nixos/remote-zettel-self-deployment.nix
     ./hardware-configuration.nix
     ../../modules/nixos/base.nix
     ../../modules/nixos/cloudflared.nix

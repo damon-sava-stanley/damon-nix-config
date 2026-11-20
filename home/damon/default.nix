@@ -375,9 +375,11 @@ in
       pkgs.darktable
       pkgs.exiftool
       pkgs.fd
+      pkgs.ffmpeg
       pkgs.gimp3
       pkgs.ghc
       pkgs.haskell-language-server
+      pkgs.imagemagick
       pkgs.keepassxc
       pkgs.lsof
       pkgs.marksman

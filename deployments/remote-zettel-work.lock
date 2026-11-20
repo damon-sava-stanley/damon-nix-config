@@ -1,0 +1,352 @@
+{
+  "nodes": {
+    "alejandra": {
+      "inputs": {
+        "fenix": "fenix",
+        "flakeCompat": "flakeCompat",
+        "nixpkgs": [
+          "papertoy",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1744324181,
+        "narHash": "sha256-Oi1n2ncF4/AWeY6X55o2FddIRICokbciqFYK64XorYk=",
+        "owner": "kamadorueda",
+        "repo": "alejandra",
+        "rev": "3e2a85506627062313e131bf8a85315f3387c8e0",
+        "type": "github"
+      },
+      "original": {
+        "owner": "kamadorueda",
+        "ref": "4.0.0",
+        "repo": "alejandra",
+        "type": "github"
+      }
+    },
+    "citeref-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1790937135,
+        "narHash": "sha256-kl2I/bZlUmwzfTURCJ92L7dzQtEsknfEtBms3z+wtVs=",
+        "owner": "urtzienriquez",
+        "repo": "citeref.nvim",
+        "rev": "a5daee9e88f38ad071ad41c2ce6a4a7a384d35ff",
+        "type": "github"
+      },
+      "original": {
+        "owner": "urtzienriquez",
+        "repo": "citeref.nvim",
+        "type": "github"
+      }
+    },
+    "dictate-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1773488036,
+        "narHash": "sha256-rQ3P3vM0dsz2cBlhxP/pu6iEZAW/1wvG5IyUCX6MLGA=",
+        "owner": "msf",
+        "repo": "dictate",
+        "rev": "9660ce307d9ebf5f0880b00c25f7364577b40879",
+        "type": "github"
+      },
+      "original": {
+        "owner": "msf",
+        "repo": "dictate",
+        "type": "github"
+      }
+    },
+    "fenix": {
+      "inputs": {
+        "nixpkgs": [
+          "papertoy",
+          "alejandra",
+          "nixpkgs"
+        ],
+        "rust-analyzer-src": "rust-analyzer-src"
+      },
+      "locked": {
+        "lastModified": 1730615655,
+        "narHash": "sha256-2HBR3zLn57LXKNRtxBb+O+uDqHM4n0pz51rPayMl4cg=",
+        "owner": "nix-community",
+        "repo": "fenix",
+        "rev": "efeb50e2535b17ffd4a135e6e3e5fd60a525180c",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-community",
+        "repo": "fenix",
+        "type": "github"
+      }
+    },
+    "flake-utils": {
+      "inputs": {
+        "systems": "systems"
+      },
+      "locked": {
+        "lastModified": 1731533236,
+        "narHash": "sha256-l0KFg5HjrsfsO/JpG+r7fRrqm12kzFHyUHqHCVpMMbI=",
+        "owner": "numtide",
+        "repo": "flake-utils",
+        "rev": "11707dc2f618dd54ca8739b309ec4fc024de578b",
+        "type": "github"
+      },
+      "original": {
+        "owner": "numtide",
+        "repo": "flake-utils",
+        "type": "github"
+      }
+    },
+    "flakeCompat": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1696426674,
+        "narHash": "sha256-kvjfFW7WAETZlt09AgDn1MrtKzP7t90Vf7vypd3OL1U=",
+        "owner": "edolstra",
+        "repo": "flake-compat",
+        "rev": "0f9255e01c2351cc7d116c072cb317785dd33b33",
+        "type": "github"
+      },
+      "original": {
+        "owner": "edolstra",
+        "repo": "flake-compat",
+        "type": "github"
+      }
+    },
+    "home-manager": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1794251182,
+        "narHash": "sha256-R2sZBXiOJo3HAnvTiVkbbHDJy//JMlAwUKEiPbfqPXk=",
+        "owner": "nix-community",
+        "repo": "home-manager",
+        "rev": "6eb2d33d1d0c95a37ef6443c88e6c1686012ee8b",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-community",
+        "ref": "release-26.05",
+        "repo": "home-manager",
+        "type": "github"
+      }
+    },
+    "nixpkgs": {
+      "locked": {
+        "lastModified": 1794552581,
+        "narHash": "sha256-qXFIqA6FCcx7XeDzw0ZNlkDT9UiCzrNDwK8RuU8RcHM=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "f1e5c356f35d07e7b71a6b5e6c9338e0b029e0c0",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "ref": "nixos-26.05",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "nixpkgs-unstable": {
+      "locked": {
+        "lastModified": 1794386569,
+        "narHash": "sha256-x9sADJvoVG0L6RejZB+/BB4YiGZFBZrfTlhF4uBq1tQ=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "d4f25a3e562008648d45bcf2d70bcc7422cad84e",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "ref": "nixos-unstable",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "papertoy": {
+      "inputs": {
+        "alejandra": "alejandra",
+        "nixpkgs": [
+          "nixpkgs"
+        ],
+        "zig2nix": "zig2nix"
+      },
+      "locked": {
+        "lastModified": 1764465180,
+        "narHash": "sha256-k69QsZe3Ww7XAFxg/GsigWkVJ+CfWtpo1C+4tL4+khE=",
+        "owner": "sin-ack",
+        "repo": "papertoy",
+        "rev": "8ad06cf9f22c34018859c51b07a3e2d0b8d28701",
+        "type": "github"
+      },
+      "original": {
+        "owner": "sin-ack",
+        "repo": "papertoy",
+        "rev": "8ad06cf9f22c34018859c51b07a3e2d0b8d28701",
+        "type": "github"
+      }
+    },
+    "remote-zettel": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1794718835,
+        "narHash": "sha256-hHGsdoNq25i3UbZ3JusxxQiMvuXJ4BhsD3lQvx8Keg4=",
+        "ref": "refs/heads/main",
+        "rev": "7dab630e39b936d6feeb087854bbf22acc03b480",
+        "revCount": 204,
+        "type": "git",
+        "url": "ssh://git@github.com/damon-sava-stanley/remote-zettel.git"
+      },
+      "original": {
+        "type": "git",
+        "url": "ssh://git@github.com/damon-sava-stanley/remote-zettel.git"
+      }
+    },
+    "remote-zettel-runtime": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1794619763,
+        "narHash": "sha256-xBs0vEkiCO78A777pk+c8f1blbEgNGm2I21X/O673hE=",
+        "ref": "refs/heads/main",
+        "rev": "c583003a20c795557a6edeac4b530aca7bbb08ed",
+        "revCount": 191,
+        "type": "git",
+        "url": "ssh://git@github.com/damon-sava-stanley/remote-zettel.git"
+      },
+      "original": {
+        "rev": "c583003a20c795557a6edeac4b530aca7bbb08ed",
+        "type": "git",
+        "url": "ssh://git@github.com/damon-sava-stanley/remote-zettel.git"
+      }
+    },
+    "remote-zettel-software": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1795003074,
+        "narHash": "sha256-/FQfLPFZlfz79AC2XVrfoHirbUoyUe7IG+ro8luqPKo=",
+        "ref": "refs/heads/main",
+        "rev": "15edcc27575cbd703aa6c49853d759dcc81da4e4",
+        "revCount": 207,
+        "type": "git",
+        "url": "ssh://git@github.com/damon-sava-stanley/remote-zettel.git"
+      },
+      "original": {
+        "rev": "15edcc27575cbd703aa6c49853d759dcc81da4e4",
+        "type": "git",
+        "url": "ssh://git@github.com/damon-sava-stanley/remote-zettel.git"
+      }
+    },
+    "remote-zettel-software-policy": {
+      "flake": false,
+      "locked": {
+        "lastModified": 0,
+        "narHash": "sha256-oaGrS+A0sibzkXHkgbf5pjG7D3G3gOtBkisUMwblymc=",
+        "path": "/nix/store/9p1l3n3jl21kskihcyb5hf03snbq5fvq-source",
+        "type": "path"
+      },
+      "original": {
+        "path": "/nix/store/9p1l3n3jl21kskihcyb5hf03snbq5fvq-source",
+        "type": "path"
+      }
+    },
+    "remote-zettel-software-source": {
+      "flake": false,
+      "locked": {
+        "lastModified": 0,
+        "narHash": "sha256-9tcwc3GI/QqLMXsLhe81lHjESIl+QdDN27Dde7NGp4A=",
+        "path": "/nix/store/cfbcja1w9k5zmbsvq4pcg2k14rx9by07-source",
+        "type": "path"
+      },
+      "original": {
+        "path": "/nix/store/cfbcja1w9k5zmbsvq4pcg2k14rx9by07-source",
+        "type": "path"
+      }
+    },
+    "root": {
+      "inputs": {
+        "citeref-src": "citeref-src",
+        "dictate-src": "dictate-src",
+        "home-manager": "home-manager",
+        "nixpkgs": "nixpkgs",
+        "nixpkgs-unstable": "nixpkgs-unstable",
+        "papertoy": "papertoy",
+        "remote-zettel": "remote-zettel",
+        "remote-zettel-runtime": "remote-zettel-runtime",
+        "remote-zettel-software": "remote-zettel-software",
+        "remote-zettel-software-policy": "remote-zettel-software-policy",
+        "remote-zettel-software-source": "remote-zettel-software-source"
+      }
+    },
+    "rust-analyzer-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1730555913,
+        "narHash": "sha256-KNHZUlqsEibg3YtfUyOFQSofP8hp1HKoY+laoesBxRM=",
+        "owner": "rust-lang",
+        "repo": "rust-analyzer",
+        "rev": "f17a5bbfd0969ba2e63a74505a80e55ecb174ed9",
+        "type": "github"
+      },
+      "original": {
+        "owner": "rust-lang",
+        "ref": "nightly",
+        "repo": "rust-analyzer",
+        "type": "github"
+      }
+    },
+    "systems": {
+      "locked": {
+        "lastModified": 1681028828,
+        "narHash": "sha256-Vy1rq5AaRuLzOxct8nz4T6wlgyUR7zLU309k9mBC768=",
+        "owner": "nix-systems",
+        "repo": "default",
+        "rev": "da67096a3b9bf56a91d16901293e51ba5b49a27e",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-systems",
+        "repo": "default",
+        "type": "github"
+      }
+    },
+    "zig2nix": {
+      "inputs": {
+        "flake-utils": "flake-utils",
+        "nixpkgs": [
+          "papertoy",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1764159071,
+        "narHash": "sha256-chWQ1i+VShcltfxkItTjDvSa4FlCxvn5SPL7qDOEx4g=",
+        "owner": "Cloudef",
+        "repo": "zig2nix",
+        "rev": "6d165c522f0a05cc2a8d1a2e9d6badafdfec972e",
+        "type": "github"
+      },
+      "original": {
+        "owner": "Cloudef",
+        "repo": "zig2nix",
+        "type": "github"
+      }
+    }
+  },
+  "root": "root",
+  "version": 7
+}

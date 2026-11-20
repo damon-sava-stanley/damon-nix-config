@@ -82,6 +82,10 @@ NIXPKGS_ALLOW_UNFREE=1 nix build --impure .#evenhub-cli
 
 ## Remote Zettel updates
 
+The software publisher is commissioned and the approved-release deployment setup
+is recorded in [the Deeley rollout](deployments/remote-zettel-self-deployment.md).
+Keep application releases separate from the enrolled host/toolchain policy.
+
 Update the application and use the normal system switch:
 
 ```console
